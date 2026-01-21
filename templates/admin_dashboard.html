@@ -1,0 +1,250 @@
+{% extends "base_admin.html" %}
+
+{% block content %}
+  <div class="max-w-6xl mx-auto">
+    <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-extrabold tracking-tight">System Overview</h2>
+        <p class="text-[#5a8c88] font-medium">Monitoring activity across teams</p>
+      </div>
+      <!-- Export Dropdown -->
+      <div class="relative" id="exportDropdown">
+        <button onclick="toggleExportMenu()" class="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-primary/90 transition-colors">
+          <span class="material-symbols-outlined text-[18px]">download</span>
+          Export CSV
+          <span class="material-symbols-outlined text-[18px]">expand_more</span>
+        </button>
+        <div id="exportMenu" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-[#1a2b2a] rounded-lg shadow-xl border border-[#d3e3e2] dark:border-[#2a3a39] z-50">
+          <a href="{{ url_for('export_invoices_csv') }}" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-[#233534] transition-colors rounded-t-lg">
+            <span class="material-symbols-outlined text-primary">description</span>
+            Export Invoices
+          </a>
+          <a href="{{ url_for('export_receipts_csv') }}" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-[#233534] transition-colors">
+            <span class="material-symbols-outlined text-green-600">receipt_long</span>
+            Export Receipts
+          </a>
+          <a href="{{ url_for('export_clients_csv') }}" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-[#233534] transition-colors">
+            <span class="material-symbols-outlined text-blue-600">group</span>
+            Export Clients
+          </a>
+          <a href="{{ url_for('export_all_csv') }}" class="flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-[#233534] transition-colors rounded-b-lg border-t border-[#d3e3e2] dark:border-[#2a3a39]">
+            <span class="material-symbols-outlined text-purple-600">table_chart</span>
+            Full Report (All Data)
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2 mb-8 text-xs font-bold text-[#5a8c88]">
+      <button type="button" class="px-3 py-2 rounded-full bg-white dark:bg-[#1a2b2a] border border-[#d3e3e2] dark:border-[#2a3a39] hover:border-primary transition-colors" data-scroll-target="overview">Overview</button>
+      <button type="button" class="px-3 py-2 rounded-full bg-white dark:bg-[#1a2b2a] border border-[#d3e3e2] dark:border-[#2a3a39] hover:border-primary transition-colors" data-scroll-target="people">People</button>
+      <button type="button" class="px-3 py-2 rounded-full bg-white dark:bg-[#1a2b2a] border border-[#d3e3e2] dark:border-[#2a3a39] hover:border-primary transition-colors" data-scroll-target="recent">Recent</button>
+      <button type="button" class="px-3 py-2 rounded-full bg-white dark:bg-[#1a2b2a] border border-[#d3e3e2] dark:border-[#2a3a39] hover:border-primary transition-colors" data-scroll-target="activity">Activity</button>
+    </div>
+
+    <div id="overview" data-section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Total Revenue Card -->
+      <div class="relative overflow-hidden bg-gradient-to-br from-primary/10 via-white to-white dark:from-primary/20 dark:via-[#1a2b2a] dark:to-[#1a2b2a] p-6 rounded-xl border border-primary/20 shadow-sm hover:shadow-md hover:border-primary/40 transition-all group">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform"></div>
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-[#5a8c88] text-sm font-medium">Total Revenue</p>
+            <p class="text-2xl font-extrabold mt-1 text-primary">GH₵{{ "{:,.2f}".format(stats.revenue) }}</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <span class="material-symbols-outlined text-primary text-2xl">payments</span>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center gap-1 text-xs text-green-600 font-medium">
+          <span class="material-symbols-outlined text-sm">trending_up</span>
+          All time earnings
+        </div>
+      </div>
+      
+      <!-- Invoices Today Card -->
+      <div class="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-white dark:from-blue-900/20 dark:via-[#1a2b2a] dark:to-[#1a2b2a] p-6 rounded-xl border border-blue-200/50 dark:border-blue-800/30 shadow-sm hover:shadow-md hover:border-blue-300 transition-all group">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform"></div>
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-[#5a8c88] text-sm font-medium">Invoices Today</p>
+            <p class="text-2xl font-extrabold mt-1 text-blue-600">{{ stats.invoices_today }}</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+            <span class="material-symbols-outlined text-blue-600 text-2xl">description</span>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center gap-1 text-xs text-blue-600 font-medium">
+          <span class="material-symbols-outlined text-sm">today</span>
+          Created today
+        </div>
+      </div>
+      
+      <!-- Pending Approvals Card -->
+      <div class="relative overflow-hidden bg-gradient-to-br from-amber-50 via-white to-white dark:from-amber-900/20 dark:via-[#1a2b2a] dark:to-[#1a2b2a] p-6 rounded-xl border border-amber-200/50 dark:border-amber-800/30 shadow-sm hover:shadow-md hover:border-amber-300 transition-all group">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform"></div>
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-[#5a8c88] text-sm font-medium">Pending Approvals</p>
+            <p class="text-2xl font-extrabold mt-1 text-amber-600">{{ stats.pending }}</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+            <span class="material-symbols-outlined text-amber-600 text-2xl">pending_actions</span>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center gap-1 text-xs text-amber-600 font-medium">
+          <span class="material-symbols-outlined text-sm">schedule</span>
+          Awaiting payment
+        </div>
+      </div>
+      
+      <!-- Active Workers Card -->
+      <div class="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-white dark:from-emerald-900/20 dark:via-[#1a2b2a] dark:to-[#1a2b2a] p-6 rounded-xl border border-emerald-200/50 dark:border-emerald-800/30 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all group">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform"></div>
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-[#5a8c88] text-sm font-medium">Active Workers</p>
+            <p class="text-2xl font-extrabold mt-1 text-emerald-600">{{ stats.active_workers }}</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+            <span class="material-symbols-outlined text-emerald-600 text-2xl">group</span>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center gap-1 text-xs text-emerald-600 font-medium">
+          <span class="material-symbols-outlined text-sm">verified</span>
+          Team members
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="lg:col-span-2 space-y-8">
+        <div id="people" data-section class="bg-white dark:bg-[#1a2b2a] rounded-xl border border-[#d3e3e2] dark:border-[#2a3a39] shadow-sm overflow-hidden">
+          <div class="p-6 border-b border-[#d3e3e2] dark:border-[#2a3a39] flex justify-between items-center">
+            <h3 class="text-lg font-bold">Employee Directory</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="bg-[#f9fafa] dark:bg-[#233534] text-[#5a8c88] text-[11px] font-bold uppercase tracking-wider">
+                <tr><th class="px-6 py-4">Full Name</th><th class="px-6 py-4">Worker ID</th><th class="px-6 py-4">Position</th><th class="px-6 py-4">Location</th><th class="px-6 py-4">Nationality</th><th class="px-6 py-4">Role</th></tr>
+              </thead>
+              <tbody class="divide-y divide-[#d3e3e2] dark:divide-[#2a3a39]">
+                {% for worker in workers %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-[#233534]/50 transition-colors">
+                  <td class="px-6 py-4 font-bold text-sm">{{ worker.full_name }}</td>
+                  <td class="px-6 py-4 font-mono text-sm bg-gray-100 dark:bg-gray-800 rounded w-max px-2 select-all">{{ worker.worker_id }}</td>
+                  <td class="px-6 py-4 text-sm">{{ worker.position }}</td>
+                  <td class="px-6 py-4 text-sm">{{ worker.location or '—' }}</td>
+                  <td class="px-6 py-4 text-sm">{{ worker.nationality or '—' }}</td>
+                  <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[#e8f5ed] text-[#078830]">{{ worker.role|capitalize }}</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">No workers found.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="recent" data-section class="bg-white dark:bg-[#1a2b2a] rounded-xl border border-[#d3e3e2] dark:border-[#2a3a39] shadow-sm overflow-hidden">
+          <div class="p-6 border-b border-[#d3e3e2] dark:border-[#2a3a39] flex justify-between items-center">
+            <h3 class="text-lg font-bold">Recent Invoices</h3>
+            <a href="{{ url_for('invoices_list') }}" class="text-primary text-sm font-bold hover:underline">View All</a>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="bg-[#f9fafa] dark:bg-[#233534] text-[#5a8c88] text-[11px] font-bold uppercase tracking-wider">
+                <tr><th class="px-6 py-4">ID</th><th class="px-6 py-4">Client</th><th class="px-6 py-4">Amount</th><th class="px-6 py-4">Date</th><th class="px-6 py-4">Status</th><th class="px-6 py-4"></th></tr>
+              </thead>
+              <tbody class="divide-y divide-[#d3e3e2] dark:divide-[#2a3a39]">
+                {% for invoice in invoices %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-[#233534]/50 transition-colors">
+                  <td class="px-6 py-4 font-bold text-sm">{{ invoice.invoice_number or ('#INV-' ~ invoice.id) }}</td>
+                  <td class="px-6 py-4 text-sm">{{ invoice.client_name }}</td>
+                  <td class="px-6 py-4 font-bold text-sm">GH₵{{ "%.2f"|format(invoice.amount) }}</td>
+                  <td class="px-6 py-4 text-sm text-[#5a8c88]">{{ invoice.date_created.strftime('%b %d, %Y') }}</td>
+                  <td class="px-6 py-4">
+                    {% if invoice.status == 'Paid' %}
+                      <span class="px-3 py-1 bg-[#e8f5ed] text-[#078830] text-[11px] font-bold rounded-full">Paid</span>
+                    {% else %}
+                      <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-[11px] font-bold rounded-full">{{ invoice.status }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
+                    <a href="{{ url_for('view_invoice', invoice_id=invoice.id) }}" class="text-[#5a8c88] hover:text-primary font-bold text-xs border border-primary/50 px-2 py-1 rounded">VIEW</a>
+                    {% if invoice.status != 'Paid' %}
+                      <form action="{{ url_for('pay_invoice', invoice_id=invoice.id) }}" method="POST" style="display:inline;">
+                        <button type="submit" class="text-[#5a8c88] hover:text-primary font-bold text-xs border border-primary px-2 py-1 rounded">PAY</button>
+                      </form>
+                    {% else %}
+                      <a href="{{ url_for('view_receipt', invoice_id=invoice.id) }}" class="text-[#5a8c88] hover:text-primary font-bold text-xs border border-green-600 text-green-600 px-2 py-1 rounded">RECEIPT</a>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="px-6 py-4 text-sm text-center">No invoices found.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="activity" data-section class="bg-white dark:bg-[#1a2b2a] p-6 rounded-xl border border-[#d3e3e2] dark:border-[#2a3a39] shadow-sm flex flex-col h-full">
+        <h3 class="text-lg font-bold mb-6">Live Activity Feed</h3>
+        <div class="space-y-6 flex-1">
+          {% if recent_activities %}
+            {% for activity in recent_activities %}
+            <div class="relative flex gap-4">
+              <div class="absolute left-[15px] top-[32px] bottom-[-24px] w-[2px] bg-[#d3e3e2] dark:bg-[#2a3a39]"></div>
+              <div class="w-8 h-8 rounded-full border-2 border-white bg-[#f1f5f4] dark:bg-[#233534] flex items-center justify-center shrink-0 z-10">
+                {% if activity.type == 'receipt' %}
+                  <span class="material-symbols-outlined text-primary">receipt_long</span>
+                {% else %}
+                  <span class="material-symbols-outlined text-primary">description</span>
+                {% endif %}
+              </div>
+              <div class="flex-1">
+                <div class="flex justify-between items-start">
+                  <p class="text-sm font-bold">{{ activity.title }}</p>
+                  <span class="text-[10px] text-[#5a8c88] font-medium">{{ activity.timestamp.strftime('%b %d, %Y %H:%M') }}</span>
+                </div>
+                <p class="text-[13px] text-[#5a8c88] mt-1">{{ activity.meta }}</p>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-sm text-[#5a8c88]">No recent activity yet.</p>
+          {% endif %}
+        </div>
+        <div class="mt-8 pt-6 border-t border-[#d3e3e2] dark:border-[#2a3a39]">
+          <p class="text-[11px] font-bold text-[#5a8c88] uppercase tracking-widest mb-4">Quick Stats</p>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-[#f1f5f4] dark:bg-[#233534] p-3 rounded-lg text-center">
+              <p class="text-xs text-[#5a8c88] font-medium">Session Time</p>
+              <p class="text-sm font-bold text-primary">04:22:12</p>
+            </div>
+            <div class="bg-[#f1f5f4] dark:bg-[#233534] p-3 rounded-lg text-center">
+              <p class="text-xs text-[#5a8c88] font-medium">Efficiency</p>
+              <p class="text-sm font-bold text-primary">94%</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+function toggleExportMenu() {
+  const menu = document.getElementById('exportMenu');
+  menu.classList.toggle('hidden');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+  const dropdown = document.getElementById('exportDropdown');
+  const menu = document.getElementById('exportMenu');
+  if (dropdown && !dropdown.contains(event.target)) {
+    menu.classList.add('hidden');
+  }
+});
+</script>
+{% endblock %}

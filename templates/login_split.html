@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Login | OpalPixel</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#178270",
+                        "background-light": "#fafafa",
+                        "background-dark": "#111111",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .input-field {
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .input-field:focus {
+            border-color: #178270;
+            box-shadow: 0 0 0 3px rgba(23, 130, 112, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark antialiased">
+    <div class="flex min-h-screen flex-col lg:flex-row">
+        <!-- Left: Hero Image Side (Hidden on Mobile) -->
+        <div class="relative hidden w-1/2 lg:flex items-center justify-center bg-primary/5 overflow-hidden">
+            <div class="absolute inset-0 z-0">
+                <div class="h-full w-full bg-cover bg-center" style='background-image: url("https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80");'></div>
+                <div class="absolute inset-0 bg-primary/30 mix-blend-multiply"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+            </div>
+            <div class="relative z-10 p-12 max-w-lg">
+                <div class="flex items-center gap-3 mb-8">
+                    <img src="{{ url_for('static', filename='uploads/Logo opalpixel_1.png') }}" alt="OpalPixel" class="h-12 w-12 rounded-xl bg-white p-1"/>
+                    <h1 class="text-white text-2xl font-bold tracking-tight">OpalPixel</h1>
+                </div>
+                <h2 class="text-white text-4xl font-bold leading-tight mb-4">Streamline your invoice workflow.</h2>
+                <p class="text-white/90 text-lg font-medium leading-relaxed">Centralized management for invoices, receipts, and financial tracking.</p>
+            </div>
+        </div>
+        
+        <!-- Right: Login Form Side -->
+        <div class="flex flex-1 flex-col items-center justify-center p-6 sm:p-12 bg-background-light dark:bg-background-dark">
+            <!-- Mobile Logo -->
+            <div class="mb-12 flex items-center gap-3 lg:hidden">
+                <img src="{{ url_for('static', filename='uploads/Logo opalpixel_1.png') }}" alt="OpalPixel" class="h-10 w-10 rounded-lg"/>
+                <h2 class="text-gray-900 dark:text-white text-xl font-bold tracking-tight">OpalPixel</h2>
+            </div>
+            
+            <div class="w-full max-w-[420px]">
+                <!-- Header Section -->
+                <div class="mb-10 text-center sm:text-left">
+                    <h2 class="text-gray-900 dark:text-white text-3xl font-bold mb-2">Welcome Back</h2>
+                    <p class="text-gray-500 text-base">Access your invoice management dashboard.</p>
+                </div>
+                
+                <!-- Login Card -->
+                <div class="bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                    {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                    <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
+                        {% for message in messages %}
+                        <p>{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                    
+                    <form class="space-y-5" action="{{ url_for('auth.login') }}" method="POST">
+                        <!-- Full Name Field -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-gray-700 dark:text-gray-300 text-sm font-medium">Full Name</label>
+                            <input name="full_name" class="input-field w-full rounded-lg text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 h-12 px-4 text-sm focus:outline-none" placeholder="Enter your full name" type="text" required/>
+                        </div>
+                        
+                        <!-- Worker ID Field -->
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center justify-between">
+                                <label class="text-gray-700 dark:text-gray-300 text-sm font-medium">Worker ID</label>
+                                <a class="text-primary hover:underline text-xs font-medium" href="mailto:opalpixel.gh@gmail.com?subject=Forgot Worker ID">Forgot ID?</a>
+                            </div>
+                            <input name="worker_id" class="input-field w-full rounded-lg text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 h-12 px-4 text-sm focus:outline-none" placeholder="Enter your worker ID" type="text" required/>
+                        </div>
+                        
+                        <!-- Remember Me -->
+                        <div class="flex items-center gap-3">
+                            <input class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0" id="remember" type="checkbox"/>
+                            <label class="text-sm text-gray-500" for="remember">Keep me logged in</label>
+                        </div>
+                        
+                        <!-- CTA Button -->
+                        <button class="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2" type="submit">
+                            <span>Sign In</span>
+                            <span class="material-symbols-outlined text-lg">arrow_forward</span>
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Footer Links -->
+                <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400">
+                    <div class="flex gap-6">
+                        <a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+                        <a class="hover:text-primary transition-colors" href="#">Terms</a>
+                    </div>
+                    <p>© 2026 OpalPixel</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

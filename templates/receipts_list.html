@@ -1,0 +1,40 @@
+{% extends "base_admin.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold">Generated Receipts</h2>
+    </div>
+
+    <div class="bg-white dark:bg-[#1a2b2a] rounded-xl border border-[#d3e3e2] dark:border-[#2a3a39] shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-[#f9fafa] dark:bg-[#233534] text-[#5a8c88] text-[11px] font-bold uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">Receipt #</th>
+                        <th class="px-6 py-4">Related Invoice</th>
+                        <th class="px-6 py-4">Amount Paid</th>
+                        <th class="px-6 py-4">Payment Date</th>
+                        <th class="px-6 py-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#d3e3e2] dark:divide-[#2a3a39]">
+                    {% for receipt in receipts %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-[#233534]/50 transition-colors">
+                        <td class="px-6 py-4 font-bold text-sm text-primary">{{ receipt.receipt_number }}</td>
+                        <td class="px-6 py-4 text-sm">{{ receipt.invoice.invoice_number if receipt.invoice else ('#INV-' ~ receipt.invoice_id) }}</td>
+                        <td class="px-6 py-4 font-bold text-sm">GH₵{{ "%.2f"|format(receipt.amount_paid) }}</td>
+                        <td class="px-6 py-4 text-sm text-[#5a8c88]">{{ receipt.payment_date.strftime('%b %d, %Y') }}</td>
+                        <td class="px-6 py-4">
+                             <a href="{{ url_for('view_receipt', invoice_id=receipt.invoice_id) }}" class="text-primary font-bold text-xs hover:underline flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">visibility</span> View
+                             </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

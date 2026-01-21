@@ -1,0 +1,56 @@
+{% extends "base_admin.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold">All Invoices</h2>
+        <a href="{{ url_for('create_invoice') }}" class="bg-primary text-white px-4 py-2 rounded-lg font-bold">
+            Create Invoice
+        </a>
+    </div>
+
+    <div class="bg-white dark:bg-[#1a2b2a] rounded-xl border border-[#d3e3e2] dark:border-[#2a3a39] shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-[#f9fafa] dark:bg-[#233534] text-[#5a8c88] text-[11px] font-bold uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">ID</th>
+                        <th class="px-6 py-4">Client</th>
+                        <th class="px-6 py-4">Amount</th>
+                        <th class="px-6 py-4">Date</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#d3e3e2] dark:divide-[#2a3a39]">
+                    {% for invoice in invoices %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-[#233534]/50 transition-colors">
+                        <td class="px-6 py-4 font-bold text-sm">{{ invoice.invoice_number or ('#INV-' ~ invoice.id) }}</td>
+                        <td class="px-6 py-4 text-sm">{{ invoice.client_name }}</td>
+                        <td class="px-6 py-4 font-bold text-sm">GH₵{{ "%.2f"|format(invoice.amount) }}</td>
+                        <td class="px-6 py-4 text-sm text-[#5a8c88]">{{ invoice.date_created.strftime('%b %d, %Y') }}</td>
+                        <td class="px-6 py-4">
+                            {% if invoice.status == 'Paid' %}
+                                <span class="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">Paid</span>
+                            {% else %}
+                                <span class="px-2 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 space-x-3">
+                            <a href="{{ url_for('view_invoice', invoice_id=invoice.id) }}" class="text-primary font-bold text-xs hover:underline">View</a>
+                            {% if invoice.status == 'Pending' %}
+                                <form action="{{ url_for('pay_invoice', invoice_id=invoice.id) }}" method="POST" class="inline">
+                                    <button class="text-primary font-bold text-xs hover:underline">Mark Paid</button>
+                                </form>
+                            {% else %}
+                                <a href="{{ url_for('view_receipt', invoice_id=invoice.id) }}" class="text-primary font-bold text-xs hover:underline">Receipt</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

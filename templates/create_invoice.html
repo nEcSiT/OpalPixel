@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Create New Invoice | OpalPixel</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@300;400;500;600;700" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#174f4a",
+                        "accent": "#F4B393",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#131f1e",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .invoice-paper {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            width: 560px; /* approx A5 at 96dpi */
+            min-height: 794px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen text-slate-900 dark:text-slate-100">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+<div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-2 text-primary dark:text-accent">
+<img src="{{ url_for('static', filename='uploads/Logo opalpixel_1.png') }}" alt="OpalPixel" class="h-8 w-auto object-contain">
+<h2 class="text-xl font-extrabold tracking-tight">OpalPixel</h2>
+</div>
+
+<nav class="hidden md:flex items-center gap-6">
+                <a class="text-sm font-semibold text-primary/60 hover:text-primary transition-colors" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="text-sm font-semibold text-primary underline underline-offset-8" href="{{ url_for('invoices_list') }}">Invoices</a>
+                <a class="text-sm font-semibold text-primary/60 hover:text-primary transition-colors" href="{{ url_for('team_list') }}">Clients</a>
+                <a class="text-sm font-semibold text-primary/60 hover:text-primary transition-colors" href="{{ url_for('receipts_list') }}">Reports</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm w-64 focus:ring-2 focus:ring-primary/20" placeholder="Search records..." type="text"/>
+</div>
+<div class="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2"></div>
+<button onclick="document.getElementById('invoiceForm').submit();" class="bg-primary text-white px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-all">
+<span class="material-symbols-outlined text-sm">send</span>
+                    Save &amp; Issue
+                </button>
+</div>
+</div>
+</header>
+<main class="max-w-[1440px] mx-auto px-6 py-8">
+<form id="invoiceForm" action="{{ url_for('create_invoice') }}" method="POST">
+<!-- Breadcrumbs -->
+<div class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-6">
+                <a class="hover:text-primary transition-colors" href="{{ url_for('invoices_list') }}">Invoices</a>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-primary dark:text-slate-200 font-medium">Create New Invoice</span>
+</div>
+<!-- Page Heading -->
+<div class="mb-10">
+<h1 class="text-4xl font-black tracking-tight text-slate-900 dark:text-white">New Invoice</h1>
+<p class="text-slate-500 dark:text-slate-400 mt-2">Generate a professional billing document for your clients.</p>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+<!-- Left Side: Input Form -->
+<div class="lg:col-span-7 space-y-8">
+<!-- Client Information Card -->
+<section class="bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-lg">person</span>
+<h2 class="text-xl font-bold">Client Information</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="md:col-span-2">
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Client Name</label>
+<input name="client_name" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="Enter client name" type="text" required>
+</div>
+<div>
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
+<input name="client_email" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="client@email.com" type="email">
+</div>
+<div>
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Phone Number</label>
+<input name="client_phone" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="0XX XXX XXXX" type="tel">
+</div>
+<div class="md:col-span-2">
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Address / Location</label>
+<input name="client_address" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="Street address, City, Region" type="text">
+</div>
+</div>
+</section>
+<!-- Line Items Card -->
+<section class="bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-lg">receipt_long</span>
+<h2 class="text-xl font-bold">Line Items</h2>
+</div>
+<button type="button" id="addRow" class="text-sm font-bold text-primary hover:bg-primary/5 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-sm">add</span> Add Row
+                        </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-slate-100 dark:border-slate-800 text-[11px] uppercase tracking-widest text-slate-400 font-bold">
+<th class="pb-3 px-2 w-1/2">Description</th>
+<th class="pb-3 px-2 text-center">Qty</th>
+<th class="pb-3 px-2 text-right">Unit Price</th>
+<th class="pb-3 px-2 text-right">Total</th>
+<th class="pb-3 px-2 w-10"></th>
+</tr>
+</thead>
+<tbody id="lineItemsBody" class="divide-y divide-slate-50 dark:divide-slate-800">
+<tr>
+<td class="py-4 px-2">
+<input name="descriptions[]" class="w-full border-none bg-transparent p-0 text-sm font-medium focus:ring-0" type="text" placeholder="Item description" required>
+</td>
+<td class="py-4 px-2">
+<input name="quantities[]" class="w-full border-none bg-transparent p-0 text-sm text-center focus:ring-0" type="number" min="1" value="1">
+</td>
+<td class="py-4 px-2">
+<input name="prices[]" class="w-full border-none bg-transparent p-0 text-sm text-right focus:ring-0" type="number" step="0.01" min="0" value="0.00">
+</td>
+<td class="py-4 px-2 text-sm font-bold text-right text-slate-900 dark:text-white"><span class="line-total">GH₵0.00</span></td>
+<td class="py-4 px-2 text-right">
+<button type="button" class="remove-row text-slate-300 hover:text-red-500 transition-colors" aria-label="Remove row">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Additional Info Card -->
+<section class="bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-lg">description</span>
+<h2 class="text-xl font-bold">Notes &amp; Terms</h2>
+</div>
+<div class="space-y-4">
+<div>
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Customer Notes</label>
+<textarea class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="Thank you for your business!" rows="3"></textarea>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div>
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Due Date</label>
+<input name="due_date" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary" type="date"/>
+</div>
+<div>
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Tax Rate (%)</label>
+<input name="tax_rate" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary" type="number" min="0" step="0.01" value="0">
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Side: Live Preview -->
+<div class="lg:col-span-5 relative">
+<div class="sticky top-24">
+<div class="flex items-center justify-between mb-4 px-2">
+<h3 class="text-xs font-black uppercase tracking-widest text-slate-400">Live Document Preview</h3>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-white rounded-lg transition-colors text-slate-400 hover:text-primary">
+<span class="material-symbols-outlined text-lg">print</span>
+</button>
+<button class="p-2 hover:bg-white rounded-lg transition-colors text-slate-400 hover:text-primary">
+<span class="material-symbols-outlined text-lg">download</span>
+</button>
+</div>
+</div>
+<!-- The Actual Paper Preview -->
+<div class="invoice-paper bg-white text-[#101918] rounded-none p-8 flex flex-col border border-slate-100">
+<!-- Preview Header -->
+<div class="flex justify-between items-start mb-8">
+            <div class="space-y-3">
+                <img src="{{ url_for('static', filename='uploads/Logo opalpixel_1.png') }}" alt="OpalPixel logo" class="h-16 w-auto object-contain">
+                <div class="text-xs text-slate-500 leading-relaxed">
+                    <p class="font-semibold uppercase tracking-tight text-[10px] text-slate-400 mb-1">Payment Details</p>
+                    <p class="text-[10px]">Bank: UBA ACC. 00788320001572<br/>Account Name: Nicholas Dornyo &amp; Lyzibond Adu-Gyamfi<br/>Mobile Money: 0508748992 (Nicholas Dornyo)</p>
+                </div>
+            </div>
+<div class="text-right">
+<h1 class="text-3xl font-black text-slate-900 mb-1">INVOICE</h1>
+<p id="previewInvoiceNumber" class="text-xs font-bold text-slate-400">{{ next_invoice_number or '#INV-DRAFT' }}</p>
+<div class="mt-4 space-y-1">
+<p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Issue Date</p>
+<p id="previewIssueDate" class="text-sm font-semibold">—</p>
+</div>
+</div>
+</div>
+<!-- Preview Client & Bill To -->
+<div class="grid grid-cols-2 gap-8 mb-8">
+<div>
+<p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mb-2">Bill To</p>
+<p id="previewClient" class="text-sm font-extrabold">Client Name</p>
+<p id="previewEmail" class="text-[10px] text-slate-500">—</p>
+<p id="previewPhone" class="text-[10px] text-slate-500">—</p>
+<p id="previewAddress" class="text-[10px] text-slate-500">—</p>
+</div>
+<div class="text-right">
+<p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mb-2">Amount Due</p>
+<p id="previewTotal" class="text-2xl font-black text-primary">GH₵0.00</p>
+<p id="previewDueDate" class="text-[10px] text-slate-400 mt-1">Upon payment / Issue receipt</p>
+</div>
+</div>
+<!-- Preview Table -->
+<div class="flex-grow">
+<table class="w-full text-left text-xs">
+<thead>
+<tr class="border-b-2 border-slate-900/5">
+<th class="py-3 font-bold text-slate-400">ITEM</th>
+<th class="py-3 font-bold text-slate-400 text-center">QTY</th>
+<th class="py-3 font-bold text-slate-400 text-right">UNIT PRICE</th>
+<th class="py-3 font-bold text-slate-400 text-right">TOTAL</th>
+</tr>
+</thead>
+<tbody id="previewItems" class="divide-y divide-slate-900/5">
+<tr>
+<td class="py-4 font-bold text-slate-400">Add items to see preview</td>
+<td class="py-4 text-center text-slate-400">—</td>
+<td class="py-4 text-right text-slate-400">—</td>
+<td class="py-4 text-right text-slate-400">—</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Preview Totals -->
+<div class="mt-8 pt-4 border-t border-slate-900/5">
+<div class="flex flex-col items-end gap-2">
+<div class="flex justify-between w-48 text-xs">
+<span class="text-slate-500">Subtotal</span>
+<span id="previewSubtotal" class="font-bold">GH₵0.00</span>
+</div>
+<div class="flex justify-between w-48 text-xs">
+<span id="previewTaxLabel" class="text-slate-500">Tax (0%)</span>
+<span id="previewTaxAmount" class="font-bold">GH₵0.00</span>
+</div>
+<div class="flex justify-between w-48 text-lg font-black text-slate-900 mt-2 border-t border-slate-900/5 pt-2">
+<span>Total</span>
+<span id="previewGrandTotal">GH₵0.00</span>
+</div>
+</div>
+</div>
+<!-- Footer with Address -->
+<div class="mt-auto pt-4 border-t border-slate-100 space-y-1">
+    <div class="flex items-center gap-2 text-[10px] text-slate-500">
+        <span class="material-symbols-outlined text-slate-400" style="font-size:14px">location_on</span>
+        <span>OpalPixel • 4 Sapele Loop, Accra, Ghana</span>
+    </div>
+    <div class="flex items-center gap-2 text-[10px] text-slate-500">
+        <span class="material-symbols-outlined text-slate-400" style="font-size:14px">call</span>
+        <span>0508748992 / 0597213211</span>
+    </div>
+    <div class="flex items-center gap-2 text-[10px] text-slate-500">
+        <span class="material-symbols-outlined text-slate-400" style="font-size:14px">mail</span>
+        <span>opalpixel.gh@gmail.com</span>
+    </div>
+</div>
+</div>
+<!-- Action Bar beneath preview -->
+<div class="mt-6 flex gap-3">
+<button class="flex-1 bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">verified</span>
+                            Save &amp; Issue Invoice
+                        </button>
+<button class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold px-6 py-4 rounded-xl hover:bg-slate-50 transition-colors">
+                            Draft
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</form>
+</main>
+<footer class="mt-20 py-10 border-t border-slate-200 dark:border-slate-800 text-center">
+<p class="text-slate-400 text-sm">FinTrack Invoice Manager v2.4.0 © 2023</p>
+</footer>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const body = document.getElementById('lineItemsBody');
+    const addRowBtn = document.getElementById('addRow');
+    const previewItems = document.getElementById('previewItems');
+    const previewClient = document.getElementById('previewClient');
+    const previewEmail = document.getElementById('previewEmail');
+    const previewPhone = document.getElementById('previewPhone');
+    const previewAddress = document.getElementById('previewAddress');
+    const previewDueDate = document.getElementById('previewDueDate');
+    const previewIssueDate = document.getElementById('previewIssueDate');
+    const previewSubtotal = document.getElementById('previewSubtotal');
+    const previewTotal = document.getElementById('previewTotal');
+    const previewGrandTotal = document.getElementById('previewGrandTotal');
+    const previewTaxLabel = document.getElementById('previewTaxLabel');
+    const previewTaxAmount = document.getElementById('previewTaxAmount');
+    const clientInput = document.querySelector('input[name="client_name"]');
+    const emailInput = document.querySelector('input[name="client_email"]');
+    const phoneInput = document.querySelector('input[name="client_phone"]');
+    const addressInput = document.querySelector('input[name="client_address"]');
+    const dueDateInput = document.querySelector('input[name="due_date"]');
+    const taxRateInput = document.querySelector('input[name="tax_rate"]');
+    const invoiceNumber = document.getElementById('previewInvoiceNumber');
+
+    const setToday = () => {
+        const today = new Date();
+        const options = { year: 'numeric', month: 'short', day: 'numeric' };
+        if (previewIssueDate) previewIssueDate.textContent = today.toLocaleDateString(undefined, options);
+        if (invoiceNumber && !invoiceNumber.textContent.trim()) invoiceNumber.textContent = '#INV-DRAFT';
+    };
+    setToday();
+    if (!body || !addRowBtn) return;
+
+    const formatCurrency = (val) => `GH₵${val.toFixed(2)}`;
+
+    const updateRowTotal = (row) => {
+        const qty = parseFloat(row.querySelector('input[name="quantities[]"]').value) || 0;
+        const price = parseFloat(row.querySelector('input[name="prices[]"]').value) || 0;
+        const total = qty * price;
+        const totalCell = row.querySelector('.line-total');
+        if (totalCell) totalCell.textContent = formatCurrency(total);
+    };
+
+    const rebuildPreview = () => {
+        if (!previewItems) return;
+        const rows = Array.from(body.children);
+        let subtotal = 0;
+        if (!rows.length) return;
+        previewItems.innerHTML = '';
+        rows.forEach((row) => {
+            const desc = row.querySelector('input[name="descriptions[]"]').value || '—';
+            const qty = parseFloat(row.querySelector('input[name="quantities[]"]').value) || 0;
+            const price = parseFloat(row.querySelector('input[name="prices[]"]').value) || 0;
+            const total = qty * price;
+            subtotal += total;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="py-4 font-bold">${desc}</td>
+                <td class="py-4 text-center">${qty || '—'}</td>
+                <td class="py-4 text-right">${formatCurrency(price)}</td>
+                <td class="py-4 text-right font-bold">${formatCurrency(total)}</td>
+            `;
+            previewItems.appendChild(tr);
+        });
+        const taxRate = parseFloat(taxRateInput?.value || '0') || 0;
+        const tax = subtotal * (taxRate / 100);
+        const grandTotal = subtotal + tax;
+        if (previewSubtotal) previewSubtotal.textContent = formatCurrency(subtotal);
+        if (previewTaxLabel) previewTaxLabel.textContent = `Tax (${taxRate.toFixed(1)}%)`;
+        if (previewTaxAmount) previewTaxAmount.textContent = formatCurrency(tax);
+        if (previewTotal) previewTotal.textContent = formatCurrency(grandTotal);
+        if (previewGrandTotal) previewGrandTotal.textContent = formatCurrency(grandTotal);
+    };
+
+    const wireRow = (row) => {
+        const qtyInput = row.querySelector('input[name="quantities[]"]');
+        const priceInput = row.querySelector('input[name="prices[]"]');
+        const removeBtn = row.querySelector('.remove-row');
+
+        [qtyInput, priceInput].forEach((input) => {
+            if (input) input.addEventListener('input', () => updateRowTotal(row));
+        });
+
+        if (removeBtn) {
+            removeBtn.addEventListener('click', () => {
+                if (body.children.length > 1) {
+                    row.remove();
+                    rebuildPreview();
+                }
+            });
+        }
+
+        updateRowTotal(row);
+        rebuildPreview();
+    };
+
+    addRowBtn.addEventListener('click', () => {
+        const template = body.firstElementChild.cloneNode(true);
+        template.querySelector('input[name="descriptions[]"]').value = '';
+        template.querySelector('input[name="quantities[]"]').value = 1;
+        template.querySelector('input[name="prices[]"]').value = '0.00';
+        wireRow(template);
+        body.appendChild(template);
+    });
+
+    Array.from(body.children).forEach(wireRow);
+
+    const syncText = () => {
+        if (clientInput && previewClient) previewClient.textContent = clientInput.value || 'Client Name';
+        if (emailInput && previewEmail) previewEmail.textContent = emailInput.value || '—';
+        if (phoneInput && previewPhone) previewPhone.textContent = phoneInput.value || '—';
+        if (addressInput && previewAddress) previewAddress.textContent = addressInput.value || '—';
+        if (dueDateInput && previewDueDate) {
+            previewDueDate.textContent = dueDateInput.value ? `Due by ${dueDateInput.value}` : 'Upon payment / Issue receipt';
+        }
+    };
+
+    [clientInput, emailInput, phoneInput, addressInput, dueDateInput, taxRateInput].forEach((el) => {
+        if (el) el.addEventListener('input', () => { syncText(); rebuildPreview(); });
+    });
+
+    rebuildPreview();
+    syncText();
+});
+</script>
+</body></html>

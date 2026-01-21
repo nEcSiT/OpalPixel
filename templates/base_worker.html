@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpalPixel - Worker Portal</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" />
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#174f4a",
+            accent: "#F4B393",
+            "background-light": "#f6f8f8",
+            "background-dark": "#131f1e",
+          },
+          fontFamily: {
+            display: ["Manrope", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: 'Manrope', sans-serif; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .active-nav { background-color: rgba(23, 79, 74, 0.1); border-left: 4px solid #174f4a; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #d3e3e2; border-radius: 10px; }
+    .pill-active { background-color: #174f4a; color: #fff; }
+    .dashboard-scroll { max-height: calc(100vh - 64px); }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#101918] dark:text-[#f9fbfb] min-h-screen flex overflow-hidden">
+  <aside class="w-64 border-r border-[#d3e3e2] dark:border-[#2a3a39] bg-white dark:bg-[#1a2b2a] flex flex-col h-screen shrink-0">
+    <div class="p-6 flex items-center gap-3">
+      <div class="size-10 rounded-xl bg-primary flex items-center justify-center text-white">
+        <span class="material-symbols-outlined">person</span>
+      </div>
+      <div>
+        <h1 class="text-primary dark:text-[#f9fbfb] text-base font-bold leading-none">Worker Portal</h1>
+        <p class="text-[#5a8c88] text-[11px] font-medium uppercase tracking-wider mt-1">OpalPixel</p>
+      </div>
+    </div>
+    <nav class="flex-1 px-3 py-4 space-y-1">
+      <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#5a8c88] hover:bg-gray-50 dark:hover:bg-[#233534] transition-colors {{ 'active-nav text-primary font-bold' if request.endpoint == 'worker_dashboard' else '' }}" href="{{ url_for('worker_dashboard') }}">
+        <span class="material-symbols-outlined">dashboard</span><span class="text-sm">My Dashboard</span>
+      </a>
+      <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#5a8c88] hover:bg-gray-50 dark:hover:bg-[#233534] transition-colors {{ 'active-nav text-primary font-bold' if request.endpoint == 'create_invoice' else '' }}" href="{{ url_for('create_invoice') }}">
+        <span class="material-symbols-outlined">add_circle</span><span class="text-sm">Create Invoice</span>
+      </a>
+      <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#5a8c88] hover:bg-gray-50 dark:hover:bg-[#233534] transition-colors {{ 'active-nav text-primary font-bold' if request.endpoint == 'my_invoices' else '' }}" href="{{ url_for('my_invoices') }}">
+        <span class="material-symbols-outlined">description</span><span class="text-sm">My Invoices</span>
+      </a>
+      <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-[#5a8c88] hover:bg-gray-50 dark:hover:bg-[#233534] transition-colors {{ 'active-nav text-primary font-bold' if request.endpoint == 'my_receipts' else '' }}" href="{{ url_for('my_receipts') }}">
+        <span class="material-symbols-outlined">receipt_long</span><span class="text-sm">My Receipts</span>
+      </a>
+    </nav>
+    <div class="p-4 mt-auto border-t border-[#d3e3e2] dark:border-[#2a3a39]">
+      <div class="flex items-center gap-3 mb-3">
+        {% if user.image_path %}
+        <img src="{{ url_for('static', filename=user.image_path) }}" alt="Profile" class="size-10 rounded-full object-cover border-2 border-primary/30">
+        {% else %}
+        <div class="size-10 rounded-full bg-primary/10 flex items-center justify-center">
+          <span class="material-symbols-outlined text-primary">person</span>
+        </div>
+        {% endif %}
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold truncate">{{ user.full_name }}</p>
+          <p class="text-[11px] text-[#5a8c88] font-medium truncate">{{ user.position or 'Worker' }}</p>
+        </div>
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="w-full bg-red-50 text-red-600 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-100 transition-colors">
+        <span class="material-symbols-outlined text-[18px]">logout</span>
+        Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <main class="flex-1 flex flex-col overflow-hidden h-screen">
+    <header class="h-16 border-b border-[#d3e3e2] dark:border-[#2a3a39] bg-white/80 dark:bg-[#1a2b2a]/80 backdrop-blur-md px-8 flex items-center justify-between z-10">
+      <div class="flex items-center gap-4">
+        <h2 class="text-lg font-bold">{% block page_title %}Dashboard{% endblock %}</h2>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-sm text-[#5a8c88]">Worker ID: <span class="font-mono font-bold text-primary">{{ user.worker_id }}</span></span>
+      </div>
+    </header>
+
+    <div id="dashboardContent" class="flex-1 overflow-y-auto p-8 custom-scrollbar dashboard-scroll">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNa5l9L4VHZMRkYvRykGGBqBPdZiZsaAJ+lZeXqIuAv89xDSHLVbkP4SRrped1IovnHgwlHGawEq+y3OC/qo7Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-5b4vYDn8ApX2HFqRSbuuSSMzdg3NofM8JrIoYNewc19hXtOD87mpy4V/mQJu1nvLKknj1mJsbgwe5KpH3QSXag==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Login - OpalPixel</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#178270",
+                        "background-light": "#fafafa",
+                        "background-dark": "#111111",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .login-card {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+        }
+        .input-field {
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .input-field:focus {
+            border-color: #178270;
+            box-shadow: 0 0 0 3px rgba(23, 130, 112, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-[400px] flex flex-col items-center">
+        <!-- Logo Section -->
+        <div class="mb-10 flex flex-col items-center">
+            <img src="{{ url_for('static', filename='uploads/Logo opalpixel_1.png') }}" alt="OpalPixel" class="h-14 w-14 mb-4 rounded-xl"/>
+            <h1 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">OpalPixel</h1>
+            <p class="text-gray-500 text-sm mt-1">Invoice Management System</p>
+        </div>
+        
+        <!-- Login Card -->
+        <div class="w-full bg-white dark:bg-gray-900 rounded-2xl login-card p-8 border border-gray-100 dark:border-gray-800">
+            <div class="mb-8 text-center">
+                <h2 class="text-gray-900 dark:text-white text-2xl font-semibold mb-2">Welcome back</h2>
+                <p class="text-gray-500 text-sm">Sign in to access your dashboard</p>
+                
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mt-4 text-sm">
+                    {% for message in messages %}
+                    <p>{{ message }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+            </div>
+            
+            <form class="space-y-5" action="{{ url_for('auth.login') }}" method="POST">
+                <!-- Full Name Field -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-gray-700 dark:text-gray-300 text-sm font-medium">Full Name</label>
+                    <input name="full_name" class="input-field w-full rounded-lg text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 h-12 px-4 text-sm focus:outline-none" placeholder="Enter your full name" type="text" required />
+                </div>
+                
+                <!-- Worker ID Field -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-gray-700 dark:text-gray-300 text-sm font-medium">Worker ID</label>
+                    <input name="worker_id" class="input-field w-full rounded-lg text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 h-12 px-4 text-sm focus:outline-none" placeholder="Enter your worker ID" type="text" required />
+                </div>
+                
+                <!-- Sign In Button -->
+                <button class="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-4 rounded-lg transition-colors mt-2" type="submit">
+                    Sign In
+                </button>
+            </form>
+            
+            <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 text-center">
+                <a class="text-primary hover:underline text-sm font-medium" href="mailto:opalpixel.gh@gmail.com?subject=Forgot Worker ID">Forgot your Worker ID?</a>
+                <p class="text-gray-400 text-xs mt-3">Need an account? <a class="text-primary font-medium" href="mailto:opalpixel.gh@gmail.com?subject=New Account Request">Contact Admin</a></p>
+            </div>
+        </div>
+        
+        <!-- Footer Links -->
+        <div class="mt-8 flex gap-6">
+            <a class="text-gray-400 hover:text-primary text-xs transition-colors" href="#">Privacy Policy</a>
+            <a class="text-gray-400 hover:text-primary text-xs transition-colors" href="#">Terms of Service</a>
+            <a class="text-gray-400 hover:text-primary text-xs transition-colors" href="#">Support</a>
+        </div>
+        
+        <!-- Copyright -->
+        <p class="text-gray-300 text-xs mt-4">© 2026 OpalPixel. All rights reserved.</p>
+    </div>
+</body>
+</html>
