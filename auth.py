@@ -5,9 +5,9 @@ from flask_login import login_user, login_required, logout_user, current_user
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
 
-from flask_app.extensions import db, login_manager
-from flask_app.models import User
-from flask_app.utils import generate_worker_id
+from extensions import db, login_manager
+from models import User
+from utils import generate_worker_id
 
 auth_bp = Blueprint('auth', __name__)
 

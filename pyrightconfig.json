@@ -1,0 +1,8 @@
+{
+    "include": ["."],
+    "exclude": ["**/__pycache__", ".venv", "venv"],
+    "reportGeneralTypeIssues": "warning",
+    "reportArgumentType": "warning",
+    "typeCheckingMode": "basic",
+    "pythonVersion": "3.11"
+}

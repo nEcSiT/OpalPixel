@@ -1,7 +1,8 @@
-from flask_app.extensions import db
+from extensions import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from typing import Optional
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -15,10 +16,24 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), default='worker') # 'admin' or 'worker'
     password_hash = db.Column(db.String(128))
 
-    def set_password(self, password):
+    def __init__(self, full_name: str, worker_id: str, position: Optional[str] = None,
+                 nationality: Optional[str] = None, location: Optional[str] = None,
+                 address: Optional[str] = None, image_path: Optional[str] = None,
+                 role: str = 'worker', password_hash: Optional[str] = None):
+        self.full_name = full_name
+        self.worker_id = worker_id
+        self.position = position
+        self.nationality = nationality
+        self.location = location
+        self.address = address
+        self.image_path = image_path
+        self.role = role
+        self.password_hash = password_hash
+
+    def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
 
-    def check_password(self, password):
+    def check_password(self, password: str) -> bool:
         if self.password_hash:
             return check_password_hash(self.password_hash, password)
         return False
@@ -41,6 +56,23 @@ class Invoice(db.Model):
     items = db.relationship('InvoiceItem', backref='invoice', lazy=True)
     receipt = db.relationship('Receipt', backref='invoice', uselist=False, lazy=True)
 
+    def __init__(self, client_name: str, amount: float, user_id: int,
+                 invoice_number: Optional[str] = None, client_email: Optional[str] = None,
+                 client_phone: Optional[str] = None, client_address: Optional[str] = None,
+                 tax_rate: float = 0.0, tax_amount: float = 0.0, status: str = 'Pending',
+                 due_date: Optional[datetime] = None):
+        self.invoice_number = invoice_number
+        self.client_name = client_name
+        self.client_email = client_email
+        self.client_phone = client_phone
+        self.client_address = client_address
+        self.amount = amount
+        self.tax_rate = tax_rate
+        self.tax_amount = tax_amount
+        self.status = status
+        self.due_date = due_date
+        self.user_id = user_id
+
 class InvoiceItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)
@@ -49,9 +81,22 @@ class InvoiceItem(db.Model):
     unit_price = db.Column(db.Float, nullable=False)
     total = db.Column(db.Float, nullable=False)
 
+    def __init__(self, invoice_id: int, description: str, quantity: int,
+                 unit_price: float, total: float):
+        self.invoice_id = invoice_id
+        self.description = description
+        self.quantity = quantity
+        self.unit_price = unit_price
+        self.total = total
+
 class Receipt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)
     payment_date = db.Column(db.DateTime, default=datetime.utcnow)
     amount_paid = db.Column(db.Float, nullable=False)
     receipt_number = db.Column(db.String(50), unique=True, nullable=False)
+
+    def __init__(self, invoice_id: int, amount_paid: float, receipt_number: str):
+        self.invoice_id = invoice_id
+        self.amount_paid = amount_paid
+        self.receipt_number = receipt_number

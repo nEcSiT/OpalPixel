@@ -7,9 +7,9 @@ from flask import Flask, render_template, redirect, url_for, request, flash, Res
 from flask_login import login_required, current_user
 from sqlalchemy import text
 
-from flask_app.extensions import db, login_manager
-from flask_app.models import User, Invoice, InvoiceItem, Receipt
-from flask_app.auth import auth_bp
+from extensions import db, login_manager
+from models import User, Invoice, InvoiceItem, Receipt
+from auth import auth_bp
 
 app = Flask(__name__)
 
@@ -27,7 +27,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db.init_app(app)
 login_manager.init_app(app)
-login_manager.login_view = 'auth.login'
+login_manager.login_view = 'auth.login'  # type: ignore[assignment]
 
 app.register_blueprint(auth_bp)
 
