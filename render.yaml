@@ -2,6 +2,7 @@ services:
   - type: web
     name: opalpixel
     runtime: python
+    rootDir: OpalPixel_App
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:

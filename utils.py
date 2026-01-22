@@ -1,6 +1,6 @@
 import random
 import string
-from .models import User
+from models import User
 
 def generate_worker_id():
     while True:

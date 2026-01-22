@@ -5,9 +5,9 @@ from flask_login import login_user, login_required, logout_user, current_user
 from bson import ObjectId
 from werkzeug.utils import secure_filename
 
-from .extensions import login_manager
-from .models import User
-from .utils import generate_worker_id
+from extensions import login_manager
+from models import User
+from utils import generate_worker_id
 
 auth_bp = Blueprint('auth', __name__)
 
