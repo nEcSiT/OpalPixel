@@ -9,9 +9,9 @@ from flask_login import login_required, current_user
 from bson import ObjectId
 import mongoengine
 
-from extensions import login_manager
-from models import User, Invoice, InvoiceItem, Receipt
-from auth import auth_bp
+from .extensions import login_manager
+from .models import User, Invoice, InvoiceItem, Receipt
+from .auth import auth_bp
 
 app = Flask(__name__)
 
