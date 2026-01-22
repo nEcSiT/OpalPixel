@@ -22,11 +22,11 @@
                     {% for receipt in receipts %}
                     <tr class="hover:bg-gray-50 dark:hover:bg-[#233534]/50 transition-colors">
                         <td class="px-6 py-4 font-bold text-sm text-primary">{{ receipt.receipt_number }}</td>
-                        <td class="px-6 py-4 text-sm">{{ receipt.invoice.invoice_number if receipt.invoice else ('#INV-' ~ receipt.invoice_id) }}</td>
+                        <td class="px-6 py-4 text-sm">{{ receipt.invoice_id.invoice_number if receipt.invoice_id else ('#INV-' ~ receipt.invoice_id.id) }}</td>
                         <td class="px-6 py-4 font-bold text-sm">GH₵{{ "%.2f"|format(receipt.amount_paid) }}</td>
                         <td class="px-6 py-4 text-sm text-[#5a8c88]">{{ receipt.payment_date.strftime('%b %d, %Y') }}</td>
                         <td class="px-6 py-4">
-                             <a href="{{ url_for('view_receipt', invoice_id=receipt.invoice_id) }}" class="text-primary font-bold text-xs hover:underline flex items-center gap-1">
+                             <a href="{{ url_for('view_receipt', invoice_id=receipt.invoice_id.id) }}" class="text-primary font-bold text-xs hover:underline flex items-center gap-1">
                                 <span class="material-symbols-outlined text-[16px]">visibility</span> View
                              </a>
                         </td>

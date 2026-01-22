@@ -175,7 +175,11 @@
           </div>
           <div class="relative group">
             {% if user.image_path %}
+            {% if user.image_path.startswith('http') %}
+            <img src="{{ user.image_path }}" alt="{{ user.full_name }}" class="size-10 rounded-full object-cover border-2 border-white shadow-sm ring-1 ring-primary/30">
+            {% else %}
             <img src="{{ url_for('static', filename=user.image_path) }}" alt="{{ user.full_name }}" class="size-10 rounded-full object-cover border-2 border-white shadow-sm ring-1 ring-primary/30">
+            {% endif %}
             {% else %}
             <div class="size-10 rounded-full bg-primary/10 border-2 border-white shadow-sm ring-1 ring-primary/30 flex items-center justify-center text-primary font-bold text-sm">
               {{ user.full_name[:2].upper() }}

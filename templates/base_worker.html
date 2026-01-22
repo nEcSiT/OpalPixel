@@ -64,7 +64,11 @@
     <div class="p-4 mt-auto border-t border-[#d3e3e2] dark:border-[#2a3a39]">
       <div class="flex items-center gap-3 mb-3">
         {% if user.image_path %}
+        {% if user.image_path.startswith('http') %}
+        <img src="{{ user.image_path }}" alt="Profile" class="size-10 rounded-full object-cover border-2 border-primary/30">
+        {% else %}
         <img src="{{ url_for('static', filename=user.image_path) }}" alt="Profile" class="size-10 rounded-full object-cover border-2 border-primary/30">
+        {% endif %}
         {% else %}
         <div class="size-10 rounded-full bg-primary/10 flex items-center justify-center">
           <span class="material-symbols-outlined text-primary">person</span>

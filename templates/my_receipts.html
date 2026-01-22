@@ -27,14 +27,14 @@
           {% for receipt in receipts %}
           <tr class="hover:bg-gray-50 dark:hover:bg-[#233534]/50 transition-colors">
             <td class="px-6 py-4 font-bold text-sm font-mono text-green-600">{{ receipt.receipt_number }}</td>
-            <td class="px-6 py-4 text-sm font-mono">{{ receipt.invoice.invoice_number or ('#INV-' ~ receipt.invoice.id) }}</td>
-            <td class="px-6 py-4 text-sm font-medium">{{ receipt.invoice.client_name }}</td>
-            <td class="px-6 py-4 text-sm text-[#5a8c88]">{{ receipt.invoice.client_email or '—' }}</td>
-            <td class="px-6 py-4 text-sm text-[#5a8c88]">{{ receipt.invoice.client_phone or '—' }}</td>
+            <td class="px-6 py-4 text-sm font-mono">{{ receipt.invoice_id.invoice_number or ('#INV-' ~ receipt.invoice_id.id) }}</td>
+            <td class="px-6 py-4 text-sm font-medium">{{ receipt.invoice_id.client_name }}</td>
+            <td class="px-6 py-4 text-sm text-[#5a8c88]">{{ receipt.invoice_id.client_email or '—' }}</td>
+            <td class="px-6 py-4 text-sm text-[#5a8c88]">{{ receipt.invoice_id.client_phone or '—' }}</td>
             <td class="px-6 py-4 font-bold text-sm text-green-600">GH₵{{ "%.2f"|format(receipt.amount_paid) }}</td>
             <td class="px-6 py-4 text-sm text-[#5a8c88]">{{ receipt.payment_date.strftime('%b %d, %Y %H:%M') }}</td>
             <td class="px-6 py-4 text-right whitespace-nowrap">
-              <a href="{{ url_for('view_receipt', invoice_id=receipt.invoice_id) }}" class="inline-flex items-center gap-1 text-green-600 hover:text-green-700 font-bold text-xs border border-green-600 px-3 py-1.5 rounded">
+              <a href="{{ url_for('view_receipt', invoice_id=receipt.invoice_id.id) }}" class="inline-flex items-center gap-1 text-green-600 hover:text-green-700 font-bold text-xs border border-green-600 px-3 py-1.5 rounded">
                 <span class="material-symbols-outlined text-[14px]">visibility</span>
                 VIEW
               </a>

@@ -176,7 +176,11 @@
         <div class="flex items-center gap-4">
           <div class="text-lg font-bold text-[#5a8c88] w-6">{{ loop.index }}</div>
           {% if worker.image_path %}
+          {% if worker.image_path.startswith('http') %}
+          <img src="{{ worker.image_path }}" alt="" class="size-10 rounded-full object-cover">
+          {% else %}
           <img src="{{ url_for('static', filename=worker.image_path) }}" alt="" class="size-10 rounded-full object-cover">
+          {% endif %}
           {% else %}
           <div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
             {{ worker.full_name[:2].upper() }}

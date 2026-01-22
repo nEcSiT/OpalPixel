@@ -9,6 +9,8 @@ from flask_login import login_required, current_user
 from bson import ObjectId
 import mongoengine
 import certifi
+import cloudinary
+import cloudinary.uploader
 
 from extensions import login_manager
 from models import User, Invoice, InvoiceItem, Receipt
@@ -34,6 +36,14 @@ try:
 except Exception as e:
     print(f"Warning: Could not connect to MongoDB: {e}")
     print("Make sure MONGODB_URI environment variable is set correctly")
+
+# Cloudinary Configuration for image storage
+cloudinary.config(
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+    api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET', ''),
+    secure=True
+)
 
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 app.config['ALLOWED_IMAGE_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -832,12 +842,23 @@ def edit_user(user_id):
         if 'image' in request.files:
             file = request.files['image']
             if file and file.filename:
-                from werkzeug.utils import secure_filename
                 ext = file.filename.rsplit('.', 1)[-1].lower()
                 if ext in app.config['ALLOWED_IMAGE_EXTENSIONS']:
-                    filename = f"{uuid.uuid4().hex}.{ext}"
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                    user_to_edit.image_path = f"uploads/{filename}"
+                    try:
+                        # Upload to Cloudinary
+                        upload_result = cloudinary.uploader.upload(
+                            file,
+                            folder='opalpixel/profiles',
+                            public_id=f"user_{user_to_edit.worker_id}_{uuid.uuid4().hex[:8]}",
+                            overwrite=True,
+                            transformation=[
+                                {'width': 400, 'height': 400, 'crop': 'fill', 'gravity': 'face'}
+                            ]
+                        )
+                        # Store the Cloudinary URL
+                        user_to_edit.image_path = upload_result['secure_url']
+                    except Exception as e:
+                        flash(f'Error uploading image: {str(e)}')
         
         user_to_edit.save()
         flash('User updated successfully')

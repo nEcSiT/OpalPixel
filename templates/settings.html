@@ -15,7 +15,11 @@
       <div class="flex items-start gap-6">
         <div class="shrink-0">
           {% if user.image_path %}
+          {% if user.image_path.startswith('http') %}
+          <img src="{{ user.image_path }}" alt="{{ user.full_name }}" class="size-24 rounded-xl object-cover border-2 border-[#d3e3e2]">
+          {% else %}
           <img src="{{ url_for('static', filename=user.image_path) }}" alt="{{ user.full_name }}" class="size-24 rounded-xl object-cover border-2 border-[#d3e3e2]">
+          {% endif %}
           {% else %}
           <div class="size-24 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl border-2 border-[#d3e3e2]">
             {{ user.full_name[:2].upper() }}

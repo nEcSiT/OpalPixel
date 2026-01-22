@@ -104,7 +104,11 @@
             <td class="px-6 py-4">
               <div class="flex items-center gap-3">
                 {% if doc.creator and doc.creator.image_path %}
+                {% if doc.creator.image_path.startswith('http') %}
+                <img src="{{ doc.creator.image_path }}" alt="" class="size-8 rounded-full object-cover">
+                {% else %}
                 <img src="{{ url_for('static', filename=doc.creator.image_path) }}" alt="" class="size-8 rounded-full object-cover">
+                {% endif %}
                 {% else %}
                 <div class="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
                   {{ doc.creator.full_name[:2].upper() if doc.creator else '??' }}

@@ -102,7 +102,11 @@
             <td class="px-6 py-4">
               <div class="flex items-center gap-3">
                 {% if user_data.user.image_path %}
+                {% if user_data.user.image_path.startswith('http') %}
+                <img src="{{ user_data.user.image_path }}" alt="" class="size-10 rounded-full object-cover border-2 border-white shadow-sm">
+                {% else %}
                 <img src="{{ url_for('static', filename=user_data.user.image_path) }}" alt="" class="size-10 rounded-full object-cover border-2 border-white shadow-sm">
+                {% endif %}
                 {% else %}
                 <div class="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm border-2 border-white shadow-sm">
                   {{ user_data.user.full_name[:2].upper() }}
@@ -168,7 +172,11 @@
         <div class="flex items-start justify-between mb-3">
           <div class="flex items-center gap-3">
             {% if user_data.user.image_path %}
+            {% if user_data.user.image_path.startswith('http') %}
+            <img src="{{ user_data.user.image_path }}" alt="" class="size-12 rounded-full object-cover border-2 border-white shadow-sm">
+            {% else %}
             <img src="{{ url_for('static', filename=user_data.user.image_path) }}" alt="" class="size-12 rounded-full object-cover border-2 border-white shadow-sm">
+            {% endif %}
             {% else %}
             <div class="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-base border-2 border-white shadow-sm">
               {{ user_data.user.full_name[:2].upper() }}
