@@ -8,6 +8,7 @@ from flask import Flask, render_template, redirect, url_for, request, flash, Res
 from flask_login import login_required, current_user
 from bson import ObjectId
 import mongoengine
+import certifi
 
 from extensions import login_manager
 from models import User, Invoice, InvoiceItem, Receipt
@@ -21,9 +22,14 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-i
 # MongoDB Configuration - Connect using mongoengine
 MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/opalpixel')
 
-# Connect to MongoDB with connection timeout settings
+# Connect to MongoDB with SSL certificate
 try:
-    mongoengine.connect(host=MONGODB_URI, serverSelectionTimeoutMS=5000, connectTimeoutMS=5000)
+    mongoengine.connect(
+        host=MONGODB_URI,
+        serverSelectionTimeoutMS=30000,
+        connectTimeoutMS=30000,
+        tlsCAFile=certifi.where()
+    )
     print(f"Connected to MongoDB")
 except Exception as e:
     print(f"Warning: Could not connect to MongoDB: {e}")
