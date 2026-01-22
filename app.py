@@ -39,9 +39,9 @@ except Exception as e:
 
 # Cloudinary Configuration for image storage
 cloudinary.config(
-    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
-    api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
-    api_secret=os.environ.get('CLOUDINARY_API_SECRET', ''),
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', 'OpalPixel'),
+    api_key=os.environ.get('CLOUDINARY_API_KEY', '177853349553367'),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET', 'TRMC4l9qe5pB7NGe9umVxhGSNwE'),
     secure=True
 )
 
