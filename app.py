@@ -1,13 +1,15 @@
 import os
 import csv
 import io
+import uuid
 from datetime import datetime
 from typing import Optional
 from flask import Flask, render_template, redirect, url_for, request, flash, Response
 from flask_login import login_required, current_user
-from sqlalchemy import text
+from bson import ObjectId
+import mongoengine
 
-from extensions import db, login_manager
+from extensions import login_manager
 from models import User, Invoice, InvoiceItem, Receipt
 from auth import auth_bp
 
@@ -15,116 +17,29 @@ app = Flask(__name__)
 
 # Production-ready configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///invoice_app.db')
-# Fix for Heroku postgres:// vs postgresql://
-if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
-    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# MongoDB Configuration - Connect using mongoengine
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/opalpixel')
+
+# Connect to MongoDB with connection timeout settings
+try:
+    mongoengine.connect(host=MONGODB_URI, serverSelectionTimeoutMS=5000, connectTimeoutMS=5000)
+    print(f"Connected to MongoDB")
+except Exception as e:
+    print(f"Warning: Could not connect to MongoDB: {e}")
+    print("Make sure MONGODB_URI environment variable is set correctly")
+
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 app.config['ALLOWED_IMAGE_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-db.init_app(app)
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'  # type: ignore[assignment]
 
 app.register_blueprint(auth_bp)
 
 
-def _seed_sample_data(admin_user):
-    """Populate a small set of demo data if the database is empty."""
-    if Invoice.query.count() > 0:
-        return
-
-    worker = User(
-        full_name='Alex Doe',
-        worker_id='WRK-1001',
-        position='Field Engineer',
-        nationality='Nigerian',
-        location='Lagos',
-        role='worker'
-    )
-    worker.set_password('worker123')
-    db.session.add(worker)
-
-    # Pending invoice
-    inv_pending = Invoice(
-        client_name='Sunrise Ventures',
-        amount=1250.00,
-        tax_rate=0.0,
-        tax_amount=0.0,
-        status='Pending',
-        due_date=datetime.utcnow(),
-        user_id=admin_user.id,
-        invoice_number=_generate_invoice_number()
-    )
-    db.session.add(inv_pending)
-
-    # Paid invoice with receipt
-    inv_paid = Invoice(
-        client_name='Coastal Marine Ltd',
-        amount=2240.00,
-        tax_rate=0.0,
-        tax_amount=0.0,
-        status='Paid',
-        due_date=datetime.utcnow(),
-        user_id=admin_user.id,
-        invoice_number=_generate_invoice_number()
-    )
-    db.session.add(inv_paid)
-    db.session.flush()
-
-    items = [
-        InvoiceItem(invoice_id=inv_pending.id, description='Site inspection', quantity=2, unit_price=250.00, total=500.00),
-        InvoiceItem(invoice_id=inv_pending.id, description='Consumables', quantity=1, unit_price=750.00, total=750.00),
-        InvoiceItem(invoice_id=inv_paid.id, description='Equipment rental', quantity=4, unit_price=300.00, total=1200.00),
-        InvoiceItem(invoice_id=inv_paid.id, description='Consultation', quantity=2, unit_price=520.00, total=1040.00),
-    ]
-    db.session.add_all(items)
-
-    receipt = Receipt(invoice_id=inv_paid.id, amount_paid=inv_paid.amount, receipt_number='REC-DEMO-01')
-    db.session.add(receipt)
-    db.session.commit()
-
-
-def _ensure_user_columns():
-    """Add newly introduced optional columns to the user table if missing (SQLite)."""
-    required = {
-        'nationality': "ALTER TABLE user ADD COLUMN nationality TEXT",
-        'location': "ALTER TABLE user ADD COLUMN location TEXT",
-        'address': "ALTER TABLE user ADD COLUMN address TEXT",
-        'image_path': "ALTER TABLE user ADD COLUMN image_path TEXT"
-    }
-    with db.engine.connect() as conn:
-        existing = {row[1] for row in conn.execute(text("PRAGMA table_info(user);"))}
-        for column, statement in required.items():
-            if column not in existing:
-                conn.execute(text(statement))
-
-
-def _ensure_invoice_columns():
-    """Add newly introduced optional columns to the invoice table if missing (SQLite)."""
-    required = {
-        'tax_rate': "ALTER TABLE invoice ADD COLUMN tax_rate FLOAT DEFAULT 0.0",
-        'tax_amount': "ALTER TABLE invoice ADD COLUMN tax_amount FLOAT DEFAULT 0.0",
-        # SQLite cannot add UNIQUE inline; add column plain then create unique index separately.
-        'invoice_number': "ALTER TABLE invoice ADD COLUMN invoice_number TEXT",
-        'client_email': "ALTER TABLE invoice ADD COLUMN client_email TEXT",
-        'client_phone': "ALTER TABLE invoice ADD COLUMN client_phone TEXT",
-        'client_address': "ALTER TABLE invoice ADD COLUMN client_address TEXT",
-    }
-    with db.engine.connect() as conn:
-        existing = {row[1] for row in conn.execute(text("PRAGMA table_info(invoice);"))}
-        for column, statement in required.items():
-            if column not in existing:
-                conn.execute(text(statement))
-
-        # Ensure unique index on invoice_number (allows NULL duplicates but enforces uniqueness when populated)
-        updated_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(invoice);"))}
-        indexes = {row[1] for row in conn.execute(text("PRAGMA index_list('invoice');"))}
-        if 'invoice_invoice_number_idx' not in indexes and 'invoice_number' in updated_columns:
-            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS invoice_invoice_number_idx ON invoice(invoice_number)"))
 
 
 def _format_invoice_number(sequence: int, target_date: Optional[datetime] = None) -> str:
@@ -138,53 +53,34 @@ def _generate_invoice_number(target_date: Optional[datetime] = None) -> str:
     """Generate the next invoice number for the target year."""
     target_date = target_date or datetime.utcnow()
     year_suffix = target_date.strftime('%y')
-    pattern = f"OPL-%-{year_suffix}"
-    count = Invoice.query.filter(Invoice.invoice_number.like(pattern)).count()
+    pattern = f"OPL-.*-{year_suffix}"
+    import re
+    count = Invoice.objects(invoice_number=re.compile(pattern)).count()
     return _format_invoice_number(count + 1, target_date)
 
 
-def _backfill_invoice_numbers():
-    """Assign invoice numbers to existing rows that lack them, preserving order per year."""
-    invoices = Invoice.query.order_by(Invoice.date_created.asc()).all()
-    max_by_year: dict[str, int] = {}
-
-    for inv in invoices:
-        if inv.invoice_number:
-            parts = inv.invoice_number.split('-')
-            if len(parts) == 3 and parts[1].isdigit():
-                year_key = parts[2]
-                seq = int(parts[1])
-                max_by_year[year_key] = max(max_by_year.get(year_key, 0), seq)
-
-    changed = False
-    for inv in invoices:
-        if inv.invoice_number:
-            continue
-        year_key = (inv.date_created or datetime.utcnow()).strftime('%y')
-        next_seq = max_by_year.get(year_key, 0) + 1
-        inv.invoice_number = _format_invoice_number(next_seq, inv.date_created)
-        max_by_year[year_key] = next_seq
-        changed = True
-
-    if changed:
-        db.session.commit()
+def _init_admin():
+    """Create default admin if not exists."""
+    try:
+        if not User.objects(role='admin').first():
+            admin = User(
+                full_name='OpalPixel',
+                worker_id='OPL-0508748992',
+                position='System Admin',
+                role='admin'
+            )
+            admin.set_password('admin123')
+            admin.save()
+            print("Default admin created: OPL-0508748992")
+    except Exception as e:
+        print(f"Could not initialize admin (MongoDB may not be connected): {e}")
 
 
-# Create DB
+# Initialize admin on startup
 with app.app_context():
-    db.create_all()
-    _ensure_user_columns()
-    _ensure_invoice_columns()
-    _backfill_invoice_numbers()
-    # Create a default admin if not exists
-    if not User.query.filter_by(role='admin').first():
-        admin = User(full_name='OpalPixel', worker_id='OPL-0508748992', position='System Admin', role='admin')
-        admin.set_password('admin123') 
-        db.session.add(admin)
-        db.session.commit()
-    admin_user = User.query.filter_by(role='admin').first()
-    if admin_user:
-        _seed_sample_data(admin_user)
+    _init_admin()
+
+
 
 @app.route('/')
 def index():
@@ -194,9 +90,11 @@ def index():
         return redirect(url_for('worker_dashboard'))
     return redirect(url_for('auth.login'))
 
+
 @app.route('/login-split')
 def login_split():
     return render_template('login_split.html')
+
 
 # ==================== WORKER ROUTES ====================
 
@@ -204,10 +102,8 @@ def login_split():
 @login_required
 def worker_dashboard():
     """Worker's personal dashboard showing their own stats."""
-    # Get worker's invoices
-    my_invoices = Invoice.query.filter_by(user_id=current_user.id).order_by(Invoice.date_created.desc()).all()
+    my_invoices = list(Invoice.objects(user_id=current_user.id).order_by('-date_created'))
     
-    # Calculate stats
     stats = {
         'total_invoices': len(my_invoices),
         'pending_invoices': sum(1 for inv in my_invoices if inv.status == 'Pending'),
@@ -215,26 +111,26 @@ def worker_dashboard():
         'total_revenue': sum(inv.amount for inv in my_invoices if inv.status == 'Paid')
     }
     
-    # Recent invoices (limit to 5)
     recent_invoices = my_invoices[:5]
-    
     return render_template('worker_dashboard.html', user=current_user, stats=stats, recent_invoices=recent_invoices)
+
 
 @app.route('/worker/invoices')
 @login_required
 def my_invoices():
     """Worker's own invoices list."""
-    invoices = Invoice.query.filter_by(user_id=current_user.id).order_by(Invoice.date_created.desc()).all()
+    invoices = list(Invoice.objects(user_id=current_user.id).order_by('-date_created'))
     return render_template('my_invoices.html', user=current_user, invoices=invoices)
+
 
 @app.route('/worker/receipts')
 @login_required
 def my_receipts():
     """Worker's own receipts (from their paid invoices)."""
-    # Get receipts from invoices created by this worker
-    my_invoice_ids = [inv.id for inv in Invoice.query.filter_by(user_id=current_user.id).all()]
-    receipts = Receipt.query.filter(Receipt.invoice_id.in_(my_invoice_ids)).order_by(Receipt.payment_date.desc()).all()
+    my_invoice_ids = [inv.id for inv in Invoice.objects(user_id=current_user.id)]
+    receipts = list(Receipt.objects(invoice_id__in=my_invoice_ids).order_by('-payment_date'))
     return render_template('my_receipts.html', user=current_user, receipts=receipts)
+
 
 # ==================== ADMIN ROUTES ====================
 
@@ -244,18 +140,13 @@ def dashboard():
     if current_user.role != 'admin':
         return redirect(url_for('worker_dashboard'))
     
-    invoices = Invoice.query.order_by(Invoice.date_created.desc()).all()
-    workers = User.query.filter_by(role='worker').all()
-    receipts = Receipt.query.order_by(Receipt.payment_date.desc()).all()
+    invoices = list(Invoice.objects.order_by('-date_created'))
+    workers = list(User.objects(role='worker'))
+    receipts = list(Receipt.objects.order_by('-payment_date'))
     
-    # Calculate Stats
     total_revenue = sum(inv.amount for inv in invoices if inv.status == 'Paid')
-    
     today = datetime.utcnow().date()
-    # Need to handle potential timezone issues or just use date() match
-    # Since we store utcnow, we compare with utcnow date
-    invoices_today = sum(1 for inv in invoices if inv.date_created.date() == today)
-    
+    invoices_today = sum(1 for inv in invoices if inv.date_created and inv.date_created.date() == today)
     pending_approvals = sum(1 for inv in invoices if inv.status == 'Pending')
     active_workers = len(workers)
     
@@ -265,20 +156,21 @@ def dashboard():
         'pending': pending_approvals,
         'active_workers': active_workers
     }
-    # Recent activity feed (mix invoices and receipts)
+    
     activities = []
     for inv in invoices[:8]:
         activities.append({
             'type': 'invoice',
-            'title': f"Invoice {inv.invoice_number or inv.id} ({inv.status})",
+            'title': f"Invoice {inv.invoice_number or str(inv.id)[:8]} ({inv.status})",
             'meta': inv.client_name,
             'timestamp': inv.date_created
         })
     for rec in receipts[:8]:
+        inv = rec.invoice_id
         activities.append({
             'type': 'receipt',
             'title': f"Receipt {rec.receipt_number}",
-            'meta': rec.invoice.client_name if rec.invoice else '—',
+            'meta': inv.client_name if inv else '—',
             'timestamp': rec.payment_date
         })
     activities.sort(key=lambda x: x['timestamp'], reverse=True)
@@ -286,19 +178,24 @@ def dashboard():
 
     return render_template('admin_dashboard.html', user=current_user, invoices=invoices, workers=workers, stats=stats, recent_activities=activities)
 
+
 @app.route('/invoices')
 @login_required
 def invoices_list():
-    if current_user.role != 'admin': return redirect(url_for('worker_dashboard'))
-    invoices = Invoice.query.order_by(Invoice.date_created.desc()).all()
+    if current_user.role != 'admin':
+        return redirect(url_for('worker_dashboard'))
+    invoices = list(Invoice.objects.order_by('-date_created'))
     return render_template('invoices_list.html', user=current_user, invoices=invoices)
+
 
 @app.route('/receipts')
 @login_required
 def receipts_list():
-    if current_user.role != 'admin': return redirect(url_for('worker_dashboard'))
-    receipts = Receipt.query.order_by(Receipt.payment_date.desc()).all()
+    if current_user.role != 'admin':
+        return redirect(url_for('worker_dashboard'))
+    receipts = list(Receipt.objects.order_by('-payment_date'))
     return render_template('receipts_list.html', user=current_user, receipts=receipts)
+
 
 # ==================== CSV EXPORT ROUTES (Admin Only) ====================
 
@@ -309,23 +206,21 @@ def export_invoices_csv():
     if current_user.role != 'admin':
         return redirect(url_for('worker_dashboard'))
     
-    invoices = Invoice.query.order_by(Invoice.date_created.desc()).all()
+    invoices = list(Invoice.objects.order_by('-date_created'))
     
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Write header
     writer.writerow([
         'Invoice Number', 'Client Name', 'Client Email', 'Client Phone', 'Client Address',
         'Amount (GH₵)', 'Tax Rate (%)', 'Tax Amount (GH₵)', 'Status',
         'Date Created', 'Due Date', 'Created By', 'Worker ID'
     ])
     
-    # Write data
     for inv in invoices:
-        creator = User.query.get(inv.user_id)
+        creator = inv.user_id
         writer.writerow([
-            inv.invoice_number or f'INV-{inv.id}',
+            inv.invoice_number or f'INV-{str(inv.id)[:8]}',
             inv.client_name,
             inv.client_email or '',
             inv.client_phone or '',
@@ -334,7 +229,7 @@ def export_invoices_csv():
             f'{inv.tax_rate:.2f}',
             f'{inv.tax_amount:.2f}',
             inv.status,
-            inv.date_created.strftime('%Y-%m-%d %H:%M'),
+            inv.date_created.strftime('%Y-%m-%d %H:%M') if inv.date_created else '',
             inv.due_date.strftime('%Y-%m-%d') if inv.due_date else '',
             creator.full_name if creator else '',
             creator.worker_id if creator else ''
@@ -347,6 +242,7 @@ def export_invoices_csv():
         headers={'Content-Disposition': f'attachment; filename=invoices_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.csv'}
     )
 
+
 @app.route('/export/receipts')
 @login_required
 def export_receipts_csv():
@@ -354,21 +250,19 @@ def export_receipts_csv():
     if current_user.role != 'admin':
         return redirect(url_for('worker_dashboard'))
     
-    receipts = Receipt.query.order_by(Receipt.payment_date.desc()).all()
+    receipts = list(Receipt.objects.order_by('-payment_date'))
     
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Write header
     writer.writerow([
         'Receipt Number', 'Invoice Number', 'Client Name', 'Client Email', 'Client Phone', 'Client Address',
         'Amount Paid (GH₵)', 'Payment Date', 'Issued By', 'Worker ID'
     ])
     
-    # Write data
     for rec in receipts:
-        inv = rec.invoice
-        creator = User.query.get(inv.user_id) if inv else None
+        inv = rec.invoice_id
+        creator = inv.user_id if inv else None
         writer.writerow([
             rec.receipt_number,
             inv.invoice_number if inv else '',
@@ -377,7 +271,7 @@ def export_receipts_csv():
             inv.client_phone or '' if inv else '',
             inv.client_address or '' if inv else '',
             f'{rec.amount_paid:.2f}',
-            rec.payment_date.strftime('%Y-%m-%d %H:%M'),
+            rec.payment_date.strftime('%Y-%m-%d %H:%M') if rec.payment_date else '',
             creator.full_name if creator else '',
             creator.worker_id if creator else ''
         ])
@@ -389,6 +283,7 @@ def export_receipts_csv():
         headers={'Content-Disposition': f'attachment; filename=receipts_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.csv'}
     )
 
+
 @app.route('/export/clients')
 @login_required
 def export_clients_csv():
@@ -396,9 +291,8 @@ def export_clients_csv():
     if current_user.role != 'admin':
         return redirect(url_for('worker_dashboard'))
     
-    invoices = Invoice.query.order_by(Invoice.client_name.asc()).all()
+    invoices = list(Invoice.objects.order_by('client_name'))
     
-    # Collect unique clients by name (could use email if available)
     seen_clients = {}
     for inv in invoices:
         key = inv.client_name.lower().strip()
@@ -420,13 +314,11 @@ def export_clients_csv():
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Write header
     writer.writerow([
         'Client Name', 'Email', 'Phone', 'Address',
         'Total Invoices', 'Total Amount (GH₵)', 'Paid Amount (GH₵)'
     ])
     
-    # Write data
     for client in seen_clients.values():
         writer.writerow([
             client['name'],
@@ -445,6 +337,7 @@ def export_clients_csv():
         headers={'Content-Disposition': f'attachment; filename=clients_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.csv'}
     )
 
+
 @app.route('/export/all')
 @login_required
 def export_all_csv():
@@ -452,12 +345,11 @@ def export_all_csv():
     if current_user.role != 'admin':
         return redirect(url_for('worker_dashboard'))
     
-    invoices = Invoice.query.order_by(Invoice.date_created.desc()).all()
+    invoices = list(Invoice.objects.order_by('-date_created'))
     
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Write header
     writer.writerow([
         'Invoice Number', 'Client Name', 'Client Email', 'Client Phone', 'Client Address',
         'Item Description', 'Quantity', 'Unit Price (GH₵)', 'Line Total (GH₵)',
@@ -466,16 +358,16 @@ def export_all_csv():
         'Created By', 'Worker ID'
     ])
     
-    # Write data
     for inv in invoices:
-        creator = User.query.get(inv.user_id)
-        receipt_num = inv.receipt.receipt_number if inv.receipt else ''
-        payment_date = inv.receipt.payment_date.strftime('%Y-%m-%d %H:%M') if inv.receipt else ''
+        creator = inv.user_id
+        receipt = Receipt.objects(invoice_id=inv.id).first()
+        receipt_num = receipt.receipt_number if receipt else ''
+        payment_date = receipt.payment_date.strftime('%Y-%m-%d %H:%M') if receipt and receipt.payment_date else ''
         
         if inv.items:
             for item in inv.items:
                 writer.writerow([
-                    inv.invoice_number or f'INV-{inv.id}',
+                    inv.invoice_number or f'INV-{str(inv.id)[:8]}',
                     inv.client_name,
                     inv.client_email or '',
                     inv.client_phone or '',
@@ -488,7 +380,7 @@ def export_all_csv():
                     f'{inv.tax_rate:.2f}',
                     f'{inv.tax_amount:.2f}',
                     inv.status,
-                    inv.date_created.strftime('%Y-%m-%d %H:%M'),
+                    inv.date_created.strftime('%Y-%m-%d %H:%M') if inv.date_created else '',
                     inv.due_date.strftime('%Y-%m-%d') if inv.due_date else '',
                     receipt_num,
                     payment_date,
@@ -497,7 +389,7 @@ def export_all_csv():
                 ])
         else:
             writer.writerow([
-                inv.invoice_number or f'INV-{inv.id}',
+                inv.invoice_number or f'INV-{str(inv.id)[:8]}',
                 inv.client_name,
                 inv.client_email or '',
                 inv.client_phone or '',
@@ -507,7 +399,7 @@ def export_all_csv():
                 f'{inv.tax_rate:.2f}',
                 f'{inv.tax_amount:.2f}',
                 inv.status,
-                inv.date_created.strftime('%Y-%m-%d %H:%M'),
+                inv.date_created.strftime('%Y-%m-%d %H:%M') if inv.date_created else '',
                 inv.due_date.strftime('%Y-%m-%d') if inv.due_date else '',
                 receipt_num,
                 payment_date,
@@ -522,12 +414,15 @@ def export_all_csv():
         headers={'Content-Disposition': f'attachment; filename=full_report_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.csv'}
     )
 
+
 @app.route('/team')
 @login_required
 def team_list():
-    if current_user.role != 'admin': return redirect(url_for('worker_dashboard'))
-    workers = User.query.filter_by(role='worker').all()
+    if current_user.role != 'admin':
+        return redirect(url_for('worker_dashboard'))
+    workers = list(User.objects(role='worker'))
     return render_template('team_list.html', user=current_user, workers=workers)
+
 
 @app.route('/create-invoice', methods=['GET', 'POST'])
 @login_required
@@ -543,7 +438,6 @@ def create_invoice():
         else:
             due_date = datetime.utcnow()
         
-        # Calculate totals from items and tax
         descriptions = request.form.getlist('descriptions[]')
         quantities = request.form.getlist('quantities[]')
         prices = request.form.getlist('prices[]')
@@ -553,12 +447,17 @@ def create_invoice():
         items = []
         
         for i in range(len(descriptions)):
-            if descriptions[i]: # Only add if description exists
+            if descriptions[i]:
                 qty = int(quantities[i]) if quantities[i] else 0
                 price = float(prices[i]) if prices[i] else 0.0
                 line_total = qty * price
                 subtotal += line_total
-                items.append({'desc': descriptions[i], 'qty': qty, 'price': price, 'total': line_total})
+                items.append(InvoiceItem(
+                    description=descriptions[i],
+                    quantity=qty,
+                    unit_price=price,
+                    total=line_total
+                ))
 
         tax_amount = subtotal * (tax_rate / 100.0)
         total_amount = subtotal + tax_amount
@@ -576,24 +475,12 @@ def create_invoice():
             due_date=due_date,
             user_id=current_user.id,
             status='Pending',
-            invoice_number=invoice_number
+            invoice_number=invoice_number,
+            items=items
         )
-        db.session.add(new_invoice)
-        db.session.commit()
+        new_invoice.save()
         
-        for item in items:
-            inv_item = InvoiceItem(
-                invoice_id=new_invoice.id,
-                description=item['desc'],
-                quantity=item['qty'],
-                unit_price=item['price'],
-                total=item['total']
-            )
-            db.session.add(inv_item)
-        
-        db.session.commit()
         flash('Invoice created successfully!')
-        # Redirect to appropriate dashboard based on role
         if current_user.role == 'admin':
             return redirect(url_for('dashboard'))
         return redirect(url_for('worker_dashboard'))
@@ -601,76 +488,107 @@ def create_invoice():
     next_invoice_number = _generate_invoice_number()
     return render_template('create_invoice.html', next_invoice_number=next_invoice_number, user=current_user)
 
-@app.route('/pay-invoice/<int:invoice_id>', methods=['POST'])
+
+@app.route('/pay-invoice/<invoice_id>', methods=['POST'])
 @login_required
 def pay_invoice(invoice_id):
-    invoice = Invoice.query.get_or_404(invoice_id)
-    # Workers can only pay their own invoices
-    if current_user.role != 'admin' and invoice.user_id != current_user.id:
+    try:
+        invoice = Invoice.objects(id=ObjectId(invoice_id)).first()
+    except:
+        flash('Invoice not found.')
+        return redirect(url_for('dashboard'))
+    
+    if not invoice:
+        flash('Invoice not found.')
+        return redirect(url_for('dashboard'))
+    
+    if current_user.role != 'admin' and str(invoice.user_id.id) != str(current_user.id):
         flash('You can only manage your own invoices.')
         return redirect(url_for('worker_dashboard'))
     
     if invoice.status != 'Paid':
         invoice.status = 'Paid'
+        invoice.save()
         
-        # specific receipt logic
-        import uuid
         receipt_number = f"REC-{uuid.uuid4().hex[:8].upper()}"
         
         receipt = Receipt(
-            invoice_id=invoice.id,
+            invoice_id=invoice,
             amount_paid=invoice.amount,
             receipt_number=receipt_number
         )
-        db.session.add(receipt)
-        db.session.commit()
+        receipt.save()
         flash('Invoice paid and receipt generated!')
     
-    # Redirect to appropriate dashboard based on role
     if current_user.role == 'admin':
         return redirect(url_for('dashboard'))
     return redirect(url_for('worker_dashboard'))
 
-@app.route('/receipt/<int:invoice_id>')
+
+@app.route('/receipt/<invoice_id>')
 @login_required
 def view_receipt(invoice_id):
-    invoice = Invoice.query.get_or_404(invoice_id)
+    try:
+        invoice = Invoice.objects(id=ObjectId(invoice_id)).first()
+    except:
+        flash('Invoice not found.')
+        return redirect(url_for('dashboard'))
     
-    # Workers can only view receipts for their own invoices
-    if current_user.role != 'admin' and invoice.user_id != current_user.id:
+    if not invoice:
+        flash('Invoice not found.')
+        return redirect(url_for('dashboard'))
+    
+    if current_user.role != 'admin' and str(invoice.user_id.id) != str(current_user.id):
         flash('You can only view receipts for your own invoices.')
         return redirect(url_for('worker_dashboard'))
     
-    if not invoice.receipt:
+    receipt = Receipt.objects(invoice_id=invoice.id).first()
+    if not receipt:
         flash('Receipt not found or invoice not paid yet.')
         if current_user.role == 'admin':
             return redirect(url_for('dashboard'))
         return redirect(url_for('worker_dashboard'))
-    return render_template('official_receipt.html', invoice=invoice, receipt=invoice.receipt, user=current_user)
+    
+    return render_template('official_receipt.html', invoice=invoice, receipt=receipt, user=current_user)
 
-@app.route('/invoice/<int:invoice_id>')
+
+@app.route('/invoice/<invoice_id>')
 @login_required
 def view_invoice(invoice_id):
-    invoice = Invoice.query.get_or_404(invoice_id)
+    try:
+        invoice = Invoice.objects(id=ObjectId(invoice_id)).first()
+    except:
+        flash('Invoice not found.')
+        return redirect(url_for('dashboard'))
     
-    # Workers can only view their own invoices
-    if current_user.role != 'admin' and invoice.user_id != current_user.id:
+    if not invoice:
+        flash('Invoice not found.')
+        return redirect(url_for('dashboard'))
+    
+    if current_user.role != 'admin' and str(invoice.user_id.id) != str(current_user.id):
         flash('You can only view your own invoices.')
         return redirect(url_for('worker_dashboard'))
     
     return render_template('invoice_detail.html', invoice=invoice, user=current_user)
 
-@app.route('/invoice/<int:invoice_id>/edit', methods=['GET', 'POST'])
+
+@app.route('/invoice/<invoice_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_invoice(invoice_id):
-    invoice = Invoice.query.get_or_404(invoice_id)
+    try:
+        invoice = Invoice.objects(id=ObjectId(invoice_id)).first()
+    except:
+        flash('Invoice not found.')
+        return redirect(url_for('dashboard'))
     
-    # Workers can only edit their own invoices
-    if current_user.role != 'admin' and invoice.user_id != current_user.id:
+    if not invoice:
+        flash('Invoice not found.')
+        return redirect(url_for('dashboard'))
+    
+    if current_user.role != 'admin' and str(invoice.user_id.id) != str(current_user.id):
         flash('You can only edit your own invoices.')
         return redirect(url_for('worker_dashboard'))
     
-    # Don't allow editing paid invoices
     if invoice.status == 'Paid':
         flash('Cannot edit a paid invoice.')
         return redirect(url_for('view_invoice', invoice_id=invoice_id))
@@ -686,27 +604,30 @@ def edit_invoice(invoice_id):
         else:
             due_date = invoice.due_date
         
-        # Calculate totals from items and tax
         descriptions = request.form.getlist('descriptions[]')
         quantities = request.form.getlist('quantities[]')
         prices = request.form.getlist('prices[]')
         tax_rate = float(request.form.get('tax_rate') or 0)
 
         subtotal = 0
-        items_data = []
+        items = []
         
         for i in range(len(descriptions)):
-            if descriptions[i]:  # Only add if description exists
+            if descriptions[i]:
                 qty = int(quantities[i]) if quantities[i] else 0
                 price = float(prices[i]) if prices[i] else 0.0
                 line_total = qty * price
                 subtotal += line_total
-                items_data.append({'desc': descriptions[i], 'qty': qty, 'price': price, 'total': line_total})
+                items.append(InvoiceItem(
+                    description=descriptions[i],
+                    quantity=qty,
+                    unit_price=price,
+                    total=line_total
+                ))
 
         tax_amount = subtotal * (tax_rate / 100.0)
         total_amount = subtotal + tax_amount
 
-        # Update invoice
         invoice.client_name = client_name
         invoice.client_email = client_email
         invoice.client_phone = client_phone
@@ -715,35 +636,26 @@ def edit_invoice(invoice_id):
         invoice.tax_rate = tax_rate
         invoice.tax_amount = tax_amount
         invoice.due_date = due_date
+        invoice.items = items
+        invoice.save()
         
-        # Delete old items and add new ones
-        InvoiceItem.query.filter_by(invoice_id=invoice.id).delete()
-        
-        for item in items_data:
-            inv_item = InvoiceItem(
-                invoice_id=invoice.id,
-                description=item['desc'],
-                quantity=item['qty'],
-                unit_price=item['price'],
-                total=item['total']
-            )
-            db.session.add(inv_item)
-        
-        db.session.commit()
         flash('Invoice updated successfully!')
         return redirect(url_for('view_invoice', invoice_id=invoice_id))
 
     return render_template('edit_invoice.html', invoice=invoice, user=current_user)
 
+
 @app.route('/receipt-workflow')
 def receipt_workflow():
     return render_template('receipt_workflow.html')
+
 
 @app.route('/official-receipt')
 def official_receipt():
     return render_template('official_receipt.html')
 
-# ==================== NEW ADMIN PORTAL ROUTES ====================
+
+# ==================== ADMIN PORTAL ROUTES ====================
 
 @app.route('/document-logs')
 @login_required
@@ -752,8 +664,7 @@ def document_logs():
     if current_user.role != 'admin':
         return redirect(url_for('worker_dashboard'))
     
-    # Get filter parameters
-    doc_type = request.args.get('type', 'all')  # all, invoice, receipt
+    doc_type = request.args.get('type', 'all')
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
     worker_id = request.args.get('worker', '')
@@ -761,50 +672,47 @@ def document_logs():
     page = int(request.args.get('page', 1))
     per_page = 15
     
-    # Base queries
-    invoices_query = Invoice.query
-    receipts_query = Receipt.query
+    # Build queries
+    invoice_filter = {}
+    receipt_filter = {}
     
-    # Apply worker filter
     if worker_id:
-        invoices_query = invoices_query.filter(Invoice.user_id == int(worker_id))
-        # For receipts, filter by invoice's user_id
-        worker_invoice_ids = [inv.id for inv in Invoice.query.filter_by(user_id=int(worker_id)).all()]
-        receipts_query = receipts_query.filter(Receipt.invoice_id.in_(worker_invoice_ids))
+        try:
+            invoice_filter['user_id'] = ObjectId(worker_id)
+            worker_invoices = Invoice.objects(user_id=ObjectId(worker_id))
+            receipt_filter['invoice_id__in'] = [inv.id for inv in worker_invoices]
+        except:
+            pass
     
-    # Apply status filter (only for invoices)
     if status:
-        invoices_query = invoices_query.filter(Invoice.status == status)
+        invoice_filter['status'] = status
     
-    # Apply date filters
     if date_from:
         try:
             from_date = datetime.strptime(date_from, '%Y-%m-%d')
-            invoices_query = invoices_query.filter(Invoice.date_created >= from_date)
-            receipts_query = receipts_query.filter(Receipt.payment_date >= from_date)
+            invoice_filter['date_created__gte'] = from_date
+            receipt_filter['payment_date__gte'] = from_date
         except ValueError:
             pass
     
     if date_to:
         try:
             to_date = datetime.strptime(date_to, '%Y-%m-%d')
-            invoices_query = invoices_query.filter(Invoice.date_created <= to_date)
-            receipts_query = receipts_query.filter(Receipt.payment_date <= to_date)
+            invoice_filter['date_created__lte'] = to_date
+            receipt_filter['payment_date__lte'] = to_date
         except ValueError:
             pass
     
-    # Fetch data based on type filter
-    invoices = invoices_query.order_by(Invoice.date_created.desc()).all() if doc_type in ['all', 'invoice'] else []
-    receipts = receipts_query.order_by(Receipt.payment_date.desc()).all() if doc_type in ['all', 'receipt'] else []
+    invoices = list(Invoice.objects(**invoice_filter).order_by('-date_created')) if doc_type in ['all', 'invoice'] else []
+    receipts = list(Receipt.objects(**receipt_filter).order_by('-payment_date')) if doc_type in ['all', 'receipt'] else []
     
-    # Build combined documents list
     documents = []
     for inv in invoices:
-        creator = User.query.get(inv.user_id)
+        creator = inv.user_id
         documents.append({
             'type': 'invoice',
-            'id': inv.id,
-            'doc_number': inv.invoice_number or f'INV-{inv.id}',
+            'id': str(inv.id),
+            'doc_number': inv.invoice_number or f'INV-{str(inv.id)[:8]}',
             'client_name': inv.client_name,
             'amount': inv.amount,
             'date': inv.date_created,
@@ -813,36 +721,31 @@ def document_logs():
         })
     
     for rec in receipts:
-        inv = rec.invoice
-        creator = User.query.get(inv.user_id) if inv else None
+        inv = rec.invoice_id
+        creator = inv.user_id if inv else None
         documents.append({
             'type': 'receipt',
-            'id': rec.id,
+            'id': str(rec.id),
             'doc_number': rec.receipt_number,
             'client_name': inv.client_name if inv else '—',
             'amount': rec.amount_paid,
             'date': rec.payment_date,
             'status': 'Completed',
             'creator': creator,
-            'invoice_id': inv.id if inv else None
+            'invoice_id': str(inv.id) if inv else None
         })
     
-    # Sort by date
-    documents.sort(key=lambda x: x['date'], reverse=True)
+    documents.sort(key=lambda x: x['date'] or datetime.min, reverse=True)
     
-    # Pagination
     total_count = len(documents)
     total_pages = (total_count + per_page - 1) // per_page
     start = (page - 1) * per_page
     end = start + per_page
     documents = documents[start:end]
     
-    # Get all workers for filter dropdown
-    workers = User.query.all()
-    
-    # Counts for tabs
-    all_invoices = Invoice.query.all()
-    all_receipts = Receipt.query.all()
+    workers = list(User.objects())
+    all_invoices = list(Invoice.objects())
+    all_receipts = list(Receipt.objects())
     
     return render_template('document_logs.html',
         user=current_user,
@@ -853,7 +756,6 @@ def document_logs():
         total_count=total_count,
         total_pages=total_pages,
         current_page=page,
-        # Pass current filter values back
         current_type=doc_type,
         current_date_from=date_from,
         current_date_to=date_to,
@@ -869,12 +771,11 @@ def user_management():
     if current_user.role != 'admin':
         return redirect(url_for('worker_dashboard'))
     
-    # Get all users with their stats
-    all_users = User.query.all()
+    all_users = list(User.objects())
     users_data = []
     
     for u in all_users:
-        user_invoices = Invoice.query.filter_by(user_id=u.id).all()
+        user_invoices = list(Invoice.objects(user_id=u.id))
         invoice_count = len(user_invoices)
         revenue = sum(inv.amount for inv in user_invoices if inv.status == 'Paid')
         
@@ -884,12 +785,11 @@ def user_management():
             'revenue': revenue
         })
     
-    # Calculate stats
     stats = {
         'total_users': len(all_users),
         'admins': sum(1 for u in all_users if u.role == 'admin'),
         'workers': sum(1 for u in all_users if u.role == 'worker'),
-        'total_invoices': Invoice.query.count()
+        'total_invoices': Invoice.objects.count()
     }
     
     return render_template('user_management.html',
@@ -899,14 +799,22 @@ def user_management():
     )
 
 
-@app.route('/edit-user/<int:user_id>', methods=['GET', 'POST'])
+@app.route('/edit-user/<user_id>', methods=['GET', 'POST'])
 @login_required
 def edit_user(user_id):
     """Edit user details."""
     if current_user.role != 'admin':
         return redirect(url_for('worker_dashboard'))
     
-    user_to_edit = User.query.get_or_404(user_id)
+    try:
+        user_to_edit = User.objects(id=ObjectId(user_id)).first()
+    except:
+        flash('User not found.')
+        return redirect(url_for('user_management'))
+    
+    if not user_to_edit:
+        flash('User not found.')
+        return redirect(url_for('user_management'))
     
     if request.method == 'POST':
         user_to_edit.full_name = request.form.get('full_name', user_to_edit.full_name).strip()
@@ -915,19 +823,17 @@ def edit_user(user_id):
         user_to_edit.nationality = request.form.get('nationality', '').strip() or None
         user_to_edit.role = request.form.get('role', user_to_edit.role)
         
-        # Handle image upload
         if 'image' in request.files:
             file = request.files['image']
             if file and file.filename:
                 from werkzeug.utils import secure_filename
-                import uuid
                 ext = file.filename.rsplit('.', 1)[-1].lower()
                 if ext in app.config['ALLOWED_IMAGE_EXTENSIONS']:
                     filename = f"{uuid.uuid4().hex}.{ext}"
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                     user_to_edit.image_path = f"uploads/{filename}"
         
-        db.session.commit()
+        user_to_edit.save()
         flash('User updated successfully')
         return redirect(url_for('user_management'))
     
@@ -942,31 +848,25 @@ def reports():
         return redirect(url_for('worker_dashboard'))
     
     from collections import defaultdict
-    from datetime import timedelta
     import json
     
-    # Get filter parameters
     selected_year = request.args.get('year', str(datetime.utcnow().year))
-    selected_month = request.args.get('month', '')  # Empty means all months
+    selected_month = request.args.get('month', '')
     
-    all_invoices = Invoice.query.order_by(Invoice.date_created.desc()).all()
-    all_receipts = Receipt.query.all()
+    all_invoices = list(Invoice.objects.order_by('-date_created'))
+    all_receipts = list(Receipt.objects())
     
-    # Get available years from data
-    available_years = sorted(set(inv.date_created.year for inv in all_invoices), reverse=True)
+    available_years = sorted(set(inv.date_created.year for inv in all_invoices if inv.date_created), reverse=True)
     if not available_years:
         available_years = [datetime.utcnow().year]
     
-    # Filter invoices by selected year
-    year_invoices = [inv for inv in all_invoices if inv.date_created.year == int(selected_year)]
+    year_invoices = [inv for inv in all_invoices if inv.date_created and inv.date_created.year == int(selected_year)]
     
-    # Further filter by month if selected
     if selected_month:
         month_invoices = [inv for inv in year_invoices if inv.date_created.month == int(selected_month)]
     else:
         month_invoices = year_invoices
     
-    # Calculate report data based on filtered invoices
     paid_invoices = [inv for inv in month_invoices if inv.status == 'Paid']
     pending_invoices = [inv for inv in month_invoices if inv.status == 'Pending']
     
@@ -974,23 +874,20 @@ def reports():
     total_pending = sum(inv.amount for inv in pending_invoices)
     total_invoices = len(month_invoices)
     average_invoice = total_revenue / len(paid_invoices) if paid_invoices else 0
-    
-    # Unique clients in filtered period
     unique_clients = len(set(inv.client_name for inv in month_invoices))
     
-    # Monthly breakdown for the selected year (for charts)
     monthly_data = defaultdict(lambda: {'revenue': 0, 'count': 0, 'paid': 0, 'pending': 0})
     
     for inv in year_invoices:
-        month_key = inv.date_created.strftime('%b')
-        monthly_data[month_key]['count'] += 1
-        if inv.status == 'Paid':
-            monthly_data[month_key]['revenue'] += inv.amount
-            monthly_data[month_key]['paid'] += 1
-        else:
-            monthly_data[month_key]['pending'] += 1
+        if inv.date_created:
+            month_key = inv.date_created.strftime('%b')
+            monthly_data[month_key]['count'] += 1
+            if inv.status == 'Paid':
+                monthly_data[month_key]['revenue'] += inv.amount
+                monthly_data[month_key]['paid'] += 1
+            else:
+                monthly_data[month_key]['pending'] += 1
     
-    # All 12 months in order
     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     monthly_labels = month_names
     monthly_revenue = [monthly_data[m]['revenue'] for m in month_names]
@@ -998,7 +895,6 @@ def reports():
     monthly_paid = [monthly_data[m]['paid'] for m in month_names]
     monthly_pending = [monthly_data[m]['pending'] for m in month_names]
     
-    # Daily data for the selected month (if a month is selected)
     daily_labels = []
     daily_revenue = []
     daily_counts = []
@@ -1009,28 +905,28 @@ def reports():
         daily_data = defaultdict(lambda: {'revenue': 0, 'count': 0})
         
         for inv in month_invoices:
-            day_key = inv.date_created.day
-            daily_data[day_key]['count'] += 1
-            if inv.status == 'Paid':
-                daily_data[day_key]['revenue'] += inv.amount
+            if inv.date_created:
+                day_key = inv.date_created.day
+                daily_data[day_key]['count'] += 1
+                if inv.status == 'Paid':
+                    daily_data[day_key]['revenue'] += inv.amount
         
         daily_labels = list(range(1, days_in_month + 1))
         daily_revenue = [daily_data[d]['revenue'] for d in daily_labels]
         daily_counts = [daily_data[d]['count'] for d in daily_labels]
     
-    # Year-over-year comparison data
     yearly_data = defaultdict(lambda: {'revenue': 0, 'count': 0})
     for inv in all_invoices:
-        year_key = inv.date_created.year
-        yearly_data[year_key]['count'] += 1
-        if inv.status == 'Paid':
-            yearly_data[year_key]['revenue'] += inv.amount
+        if inv.date_created:
+            year_key = inv.date_created.year
+            yearly_data[year_key]['count'] += 1
+            if inv.status == 'Paid':
+                yearly_data[year_key]['revenue'] += inv.amount
     
     yearly_labels = sorted(yearly_data.keys())
     yearly_revenue = [yearly_data[y]['revenue'] for y in yearly_labels]
     yearly_counts = [yearly_data[y]['count'] for y in yearly_labels]
     
-    # Calculate growth compared to previous year
     current_year_revenue = yearly_data.get(int(selected_year), {}).get('revenue', 0)
     prev_year_revenue = yearly_data.get(int(selected_year) - 1, {}).get('revenue', 0)
     if prev_year_revenue > 0:
@@ -1038,18 +934,16 @@ def reports():
     else:
         revenue_growth = 0
     
-    # Status breakdown
     status_counts = {
         'Paid': len(paid_invoices),
         'Pending': len(pending_invoices),
         'Overdue': sum(1 for inv in month_invoices if inv.status == 'Overdue')
     }
     
-    # Top workers by revenue (for filtered period)
-    workers = User.query.all()
+    workers = list(User.objects())
     worker_stats = []
     for w in workers:
-        w_invoices = [inv for inv in month_invoices if inv.user_id == w.id]
+        w_invoices = [inv for inv in month_invoices if inv.user_id and str(inv.user_id.id) == str(w.id)]
         w_revenue = sum(inv.amount for inv in w_invoices if inv.status == 'Paid')
         w_count = len(w_invoices)
         if w_count > 0:
@@ -1064,13 +958,11 @@ def reports():
     worker_stats.sort(key=lambda x: x['revenue'], reverse=True)
     top_workers = worker_stats[:5]
     
-    # Recent invoices (from filtered period)
     recent_invoices = month_invoices[:10]
     
-    # Invoices this month (current calendar month)
     current_month = datetime.utcnow().month
-    current_year = datetime.utcnow().year
-    invoices_this_month = sum(1 for inv in all_invoices if inv.date_created.month == current_month and inv.date_created.year == current_year)
+    current_year_num = datetime.utcnow().year
+    invoices_this_month = sum(1 for inv in all_invoices if inv.date_created and inv.date_created.month == current_month and inv.date_created.year == current_year_num)
     
     report = {
         'total_revenue': total_revenue,
@@ -1093,21 +985,17 @@ def reports():
         report=report,
         top_workers=top_workers,
         recent_invoices=recent_invoices,
-        # Time filter data
         selected_year=selected_year,
         selected_month=selected_month,
         available_years=available_years,
-        # Monthly chart data
         monthly_labels=json.dumps(monthly_labels),
         monthly_revenue=json.dumps(monthly_revenue),
         monthly_counts=json.dumps(monthly_counts),
         monthly_paid=json.dumps(monthly_paid),
         monthly_pending=json.dumps(monthly_pending),
-        # Daily chart data (when month selected)
         daily_labels=json.dumps(daily_labels),
         daily_revenue=json.dumps(daily_revenue),
         daily_counts=json.dumps(daily_counts),
-        # Yearly comparison data
         yearly_labels=json.dumps(yearly_labels),
         yearly_revenue=json.dumps(yearly_revenue),
         yearly_counts=json.dumps(yearly_counts)
@@ -1122,9 +1010,9 @@ def settings():
         return redirect(url_for('worker_dashboard'))
     
     system_info = {
-        'total_invoices': Invoice.query.count(),
-        'total_receipts': Receipt.query.count(),
-        'total_users': User.query.count()
+        'total_invoices': Invoice.objects.count(),
+        'total_receipts': Receipt.objects.count(),
+        'total_users': User.objects.count()
     }
     
     return render_template('settings.html', user=current_user, system_info=system_info)
@@ -1134,5 +1022,6 @@ def settings():
 def logs():
     return render_template('logs.html')
 
+
 if __name__ == '__main__':
-    app.run(debug=True, ssl_context='adhoc')
+    app.run(debug=True)

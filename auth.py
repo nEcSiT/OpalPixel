@@ -2,10 +2,10 @@ import os
 import uuid
 from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app
 from flask_login import login_user, login_required, logout_user, current_user
-from sqlalchemy import func
+from bson import ObjectId
 from werkzeug.utils import secure_filename
 
-from extensions import db, login_manager
+from extensions import login_manager
 from models import User
 from utils import generate_worker_id
 
@@ -13,7 +13,11 @@ auth_bp = Blueprint('auth', __name__)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    try:
+        return User.objects(id=ObjectId(user_id)).first()
+    except:
+        return None
+
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -26,7 +30,7 @@ def login():
             return render_template('login.html')
 
         normalized_id = worker_id.upper()
-        user = User.query.filter(func.upper(User.worker_id) == normalized_id).first()
+        user = User.objects(worker_id__iexact=normalized_id).first()
 
         if user and user.full_name.strip().casefold() == full_name.casefold():
             login_user(user)
@@ -81,8 +85,8 @@ def create_worker():
         image_path=image_path,
         role='worker'
     )
-    db.session.add(new_worker)
-    db.session.commit()
+    new_worker.save()
     flash(f'New worker added successfully. ASSIGNED ID: {worker_id}')
         
     return redirect(url_for('dashboard'))
+
