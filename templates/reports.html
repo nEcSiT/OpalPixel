@@ -253,7 +253,7 @@
           <tr class="hover:bg-gray-50 dark:hover:bg-[#233534]/50 transition-colors">
             <td class="px-6 py-4 font-mono font-bold text-sm">{{ invoice.invoice_number or ('#INV-' ~ invoice.id) }}</td>
             <td class="px-6 py-4 text-sm">{{ invoice.client_name }}</td>
-            <td class="px-6 py-4 text-sm text-[#5a8c88]">{{ invoice.user.full_name if invoice.user else '—' }}</td>
+            <td class="px-6 py-4 text-sm text-[#5a8c88]">{{ invoice.user_id.full_name if invoice.user_id else '—' }}</td>
             <td class="px-6 py-4 font-bold text-sm">GH₵{{ "{:,.2f}".format(invoice.amount) }}</td>
             <td class="px-6 py-4 text-sm text-[#5a8c88]">{{ invoice.date_created.strftime('%b %d, %Y') }}</td>
             <td class="px-6 py-4">

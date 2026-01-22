@@ -479,7 +479,7 @@ def create_invoice():
             tax_rate=tax_rate,
             tax_amount=tax_amount,
             due_date=due_date,
-            user_id=current_user.id,
+            user_id=current_user._get_current_object() if hasattr(current_user, '_get_current_object') else current_user,
             status='Pending',
             invoice_number=invoice_number,
             items=items

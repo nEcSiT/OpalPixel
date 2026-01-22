@@ -183,7 +183,7 @@
                         <p id="previewDueDate" class="text-[10px] text-slate-400 mt-1">Upon payment / Issue receipt</p>
                         <div class="mt-3">
                             <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mb-1">Prepared By</p>
-                            <p class="text-[11px] font-semibold text-slate-700">{{ invoice.user.full_name if invoice.user else 'System' }}</p>
+                            <p class="text-[11px] font-semibold text-slate-700">{{ invoice.user_id.full_name if invoice.user_id else 'System' }}</p>
                         </div>
                     </div>
                 </div>

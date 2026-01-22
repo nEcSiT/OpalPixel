@@ -128,8 +128,8 @@
 <span class="material-symbols-outlined text-primary">person</span>
 </div>
 <div>
-<p class="text-[13px] font-bold text-slate-900 dark:text-white">{{ invoice.user.full_name if invoice.user else 'Admin System' }}</p>
-<p class="text-[11px] text-slate-500">{{ invoice.user.position if invoice.user else 'System Administrator' }}</p>
+<p class="text-[13px] font-bold text-slate-900 dark:text-white">{{ invoice.user_id.full_name if invoice.user_id else 'Admin System' }}</p>
+<p class="text-[11px] text-slate-500">{{ invoice.user_id.position if invoice.user_id else 'System Administrator' }}</p>
 </div>
 </div>
 </div>

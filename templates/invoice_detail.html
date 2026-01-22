@@ -66,7 +66,7 @@
         <p class="text-2xl font-black text-primary">GH₵{{ '%.2f'|format(invoice.amount) }}</p>
         <div class="mt-4">
           <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mb-1">Prepared By</p>
-          <p class="text-[11px] font-semibold text-slate-700">{{ invoice.user.full_name if invoice.user else 'System' }}</p>
+          <p class="text-[11px] font-semibold text-slate-700">{{ invoice.user_id.full_name if invoice.user_id else 'System' }}</p>
         </div>
       </div>
     </div>
