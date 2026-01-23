@@ -48,8 +48,8 @@ flask run
 ## Default Admin Account
 
 On first run, the app creates a default admin:
-- **Name**: `OpalPixel`
-- **Worker ID**: `OPL-0508748992`
+- **Name**: `******`
+- **Worker ID**: `*************`
 
 ## Deployment on Render.com (Free)
 
