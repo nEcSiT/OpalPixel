@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Login - OpalPixel</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='uploads/Logo opalpixel_1.png') }}"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ["Inter", "sans-serif"] },
+                    colors: {
+                        accent: { DEFAULT: '#6366f1', light: '#818cf8', dark: '#4f46e5', 50: '#eef2ff' },
+                        surface: { light: '#ffffff', dark: '#0f1117', 'card-dark': '#181a20' },
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .input-field { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+        .input-field:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+        .neon-glow { box-shadow: 0 0 20px rgba(99,102,241,0.15); }
+        .dark .neon-glow { box-shadow: 0 0 25px rgba(99,102,241,0.3); }
+        html.transitioning, html.transitioning *, html.transitioning *::before, html.transitioning *::after {
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s !important;
+        }
+    </style>
+    <script>(function(){ if(localStorage.getItem('opalpixel-theme')==='dark'){document.documentElement.classList.add('dark');document.documentElement.classList.remove('light');} })()</script>
+</head>
+<body class="bg-neutral-50 dark:bg-surface-dark min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-[400px] flex flex-col items-center">
+        <div class="mb-10 flex flex-col items-center">
+            <img src="{{ url_for('static', filename='uploads/Logo opalpixel_1.png') }}" alt="OpalPixel" class="size-12 mb-4 object-contain dark:brightness-0 dark:invert"/>
+            <h1 class="text-xl font-bold text-neutral-900 dark:text-white tracking-tight">OpalPixel</h1>
+            <p class="text-neutral-500 dark:text-neutral-400 text-sm mt-1">Invoice Management System</p>
+        </div>
+
+        <div class="w-full bg-white dark:bg-surface-card-dark rounded-2xl shadow-sm p-8 border border-neutral-200 dark:border-white/10">
+            <div class="mb-8 text-center">
+                <h2 class="text-neutral-900 dark:text-white text-2xl font-semibold mb-2">Welcome back</h2>
+                <p class="text-neutral-500 dark:text-neutral-400 text-sm">Sign in to access your dashboard</p>
+
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                <div class="bg-accent-50 dark:bg-accent/10 border border-accent/20 text-accent-dark dark:text-accent-light px-4 py-3 rounded-lg mt-4 text-sm font-medium">
+                    {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+            </div>
+
+            <form class="space-y-5" action="{{ url_for('auth.login') }}" method="POST">
+                <div class="flex flex-col gap-2">
+                    <label class="text-neutral-700 dark:text-neutral-300 text-sm font-medium">Full Name</label>
+                    <input name="full_name" class="input-field w-full rounded-lg text-neutral-900 dark:text-white border border-neutral-200 dark:border-white/10 bg-neutral-50 dark:bg-white/5 h-12 px-4 text-sm focus:outline-none" placeholder="Enter your full name" type="text" required />
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="text-neutral-700 dark:text-neutral-300 text-sm font-medium">Worker ID</label>
+                    <input name="worker_id" class="input-field w-full rounded-lg text-neutral-900 dark:text-white border border-neutral-200 dark:border-white/10 bg-neutral-50 dark:bg-white/5 h-12 px-4 text-sm focus:outline-none" placeholder="Enter your worker ID" type="text" required />
+                </div>
+                <button class="w-full bg-accent hover:bg-accent-dark text-white font-semibold py-3 px-4 rounded-lg transition-colors mt-2 neon-glow" type="submit">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="mt-8 pt-6 border-t border-neutral-100 dark:border-white/5 text-center">
+                <div class="flex justify-center mb-4">
+                    <button onclick="toggleTheme()" class="size-9 rounded-lg flex items-center justify-center text-neutral-400 dark:text-neutral-500 hover:bg-neutral-200 dark:hover:bg-white/5 border border-neutral-200 dark:border-white/10 transition-colors" title="Toggle theme">
+                        <span class="material-symbols-outlined text-lg dark:hidden">dark_mode</span>
+                        <span class="material-symbols-outlined text-lg hidden dark:block">light_mode</span>
+                    </button>
+                </div>
+                <a class="text-accent hover:text-accent-dark dark:hover:text-accent-light text-sm font-medium hover:underline" href="mailto:opalpixel.gh@gmail.com?subject=Forgot Worker ID">Forgot your Worker ID?</a>
+                <p class="text-neutral-400 dark:text-neutral-500 text-xs mt-3">Need an account? <a class="text-accent font-medium hover:underline" href="mailto:opalpixel.gh@gmail.com?subject=New Account Request">Contact Admin</a></p>
+            </div>
+        </div>
+
+
+
+        <div class="mt-4 flex gap-6">
+            <a class="text-neutral-400 dark:text-neutral-500 hover:text-accent text-xs transition-colors" href="#">Privacy Policy</a>
+            <a class="text-neutral-400 dark:text-neutral-500 hover:text-accent text-xs transition-colors" href="#">Terms of Service</a>
+            <a class="text-neutral-400 dark:text-neutral-500 hover:text-accent text-xs transition-colors" href="#">Support</a>
+        </div>
+        <p class="text-neutral-300 dark:text-neutral-600 text-xs mt-4">&copy; 2026 OpalPixel. All rights reserved.</p>
+    </div>
+    <script>
+        function getTheme(){return localStorage.getItem('opalpixel-theme')||'light'}
+        function applyTheme(t){const h=document.documentElement;h.classList.add('transitioning');h.classList.toggle('dark',t==='dark');h.classList.toggle('light',t!=='dark');localStorage.setItem('opalpixel-theme',t);setTimeout(()=>h.classList.remove('transitioning'),350)}
+        function toggleTheme(){applyTheme(getTheme()==='dark'?'light':'dark')}
+    </script>
+</body>
+</html>

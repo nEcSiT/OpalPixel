@@ -1,0 +1,45 @@
+{% extends "base_admin.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold dark:text-white">Team Members</h2>
+        <button onclick="document.getElementById('workerModal').classList.remove('hidden')" class="bg-accent text-white neon-glow hover:bg-accent-dark px-4 py-2 rounded-lg font-bold flex items-center gap-2">
+            <span class="material-symbols-outlined text-[20px]">add</span> Add Member
+        </button>
+    </div>
+
+    <div class="bg-white dark:bg-surface-card-dark rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-neutral-50 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 text-[11px] font-bold uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">Full Name</th>
+                        <th class="px-6 py-4">Worker ID</th>
+                        <th class="px-6 py-4">Position</th>
+                        <th class="px-6 py-4">Location</th>
+                        <th class="px-6 py-4">Nationality</th>
+                        <th class="px-6 py-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-neutral-200 dark:divide-white/5">
+                    {% for worker in workers %}
+                    <tr class="hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors">
+                        <td class="px-6 py-4 font-bold text-sm dark:text-white">{{ worker.full_name }}</td>
+                        <td class="px-6 py-4 font-mono text-sm bg-neutral-100 dark:bg-white/10 dark:text-white rounded w-max px-2">{{ worker.worker_id }}</td>
+                        <td class="px-6 py-4 text-sm">{{ worker.position }}</td>
+                        <td class="px-6 py-4 text-sm">{{ worker.location or '—' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ worker.nationality or '—' }}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-accent text-white">
+                            Active
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

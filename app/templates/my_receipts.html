@@ -1,0 +1,59 @@
+{% extends "base_worker.html" %}
+{% block page_title %}My Receipts{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto">
+  <div class="mb-6">
+    <h2 class="text-2xl font-extrabold tracking-tight dark:text-white">My Receipts</h2>
+    <p class="text-neutral-500 dark:text-neutral-400 font-medium">{{ receipts|length }} receipt(s) from your paid invoices</p>
+  </div>
+
+  <!-- Receipts Table -->
+  <div class="bg-white dark:bg-surface-card-dark rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead class="bg-neutral-50 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 text-[11px] font-bold uppercase tracking-wider">
+          <tr>
+            <th class="px-6 py-4">Receipt #</th>
+            <th class="px-6 py-4">Invoice #</th>
+            <th class="px-6 py-4">Client</th>
+            <th class="px-6 py-4">Email</th>
+            <th class="px-6 py-4">Phone</th>
+            <th class="px-6 py-4">Amount Paid</th>
+            <th class="px-6 py-4">Payment Date</th>
+            <th class="px-6 py-4"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-neutral-200 dark:divide-white/5">
+          {% for receipt in receipts %}
+          <tr class="hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors">
+            <td class="px-6 py-4 font-bold text-sm font-mono text-black dark:text-white">{{ receipt.receipt_number }}</td>
+            <td class="px-6 py-4 text-sm font-mono">{{ receipt.invoice.invoice_number or ('#INV-' ~ receipt.invoice_id) }}</td>
+            <td class="px-6 py-4 text-sm font-medium">{{ receipt.invoice_id.client_name }}</td>
+            <td class="px-6 py-4 text-sm text-neutral-500 dark:text-neutral-400">{{ receipt.invoice_id.client_email or '—' }}</td>
+            <td class="px-6 py-4 text-sm text-neutral-500 dark:text-neutral-400">{{ receipt.invoice_id.client_phone or '—' }}</td>
+            <td class="px-6 py-4 font-bold text-sm text-black dark:text-white">GH₵{{ "%.2f"|format(receipt.amount_paid) }}</td>
+            <td class="px-6 py-4 text-sm text-neutral-500 dark:text-neutral-400">{{ receipt.payment_date.strftime('%b %d, %Y %H:%M') }}</td>
+            <td class="px-6 py-4 text-right whitespace-nowrap">
+              <a href="{{ url_for('invoices.view_receipt', invoice_id=receipt.invoice_id) }}" class="inline-flex items-center gap-1 text-accent dark:text-accent-light font-bold text-xs border border-accent/30 dark:border-accent/50 px-3 py-1.5 rounded hover:bg-accent/5">
+                <span class="material-symbols-outlined text-[14px]">visibility</span>
+                VIEW
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="px-6 py-12 text-center">
+              <div class="flex flex-col items-center gap-3">
+                <span class="material-symbols-outlined text-5xl text-neutral-300 dark:text-neutral-600">receipt_long</span>
+                <p class="text-neutral-500 dark:text-neutral-400">No receipts yet</p>
+                <p class="text-sm text-neutral-500 dark:text-neutral-400">Receipts are generated when invoices are marked as paid</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

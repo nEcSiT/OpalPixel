@@ -1,0 +1,114 @@
+{% extends "base_worker.html" %}
+{% block page_title %}My Invoices{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto">
+  <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h2 class="text-2xl font-extrabold tracking-tight dark:text-white">My Invoices</h2>
+      <p class="text-neutral-500 dark:text-neutral-400 font-medium">{{ invoices|length }} invoice(s) created by you</p>
+    </div>
+    <a href="{{ url_for('invoices.create') }}" class="inline-flex items-center gap-2 bg-accent text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-accent-dark neon-glow transition-colors">
+      <span class="material-symbols-outlined text-[18px]">add</span>
+      New Invoice
+    </a>
+  </div>
+
+  <!-- Filter Pills -->
+  <div class="flex flex-wrap gap-2 mb-6">
+    <button onclick="filterInvoices('all')" class="filter-btn px-4 py-2 rounded-full text-sm font-bold border border-neutral-200 dark:border-white/10 bg-accent text-white" data-filter="all">
+      All ({{ invoices|length }})
+    </button>
+    <button onclick="filterInvoices('Pending')" class="filter-btn px-4 py-2 rounded-full text-sm font-bold border border-neutral-200 dark:border-white/10 bg-white dark:bg-surface-card-dark text-neutral-500 dark:text-neutral-400 hover:border-black dark:hover:border-accent" data-filter="Pending">
+      Pending ({{ invoices|selectattr('status', 'equalto', 'Pending')|list|length }})
+    </button>
+    <button onclick="filterInvoices('Paid')" class="filter-btn px-4 py-2 rounded-full text-sm font-bold border border-neutral-200 dark:border-white/10 bg-white dark:bg-surface-card-dark text-neutral-500 dark:text-neutral-400 hover:border-black dark:hover:border-accent" data-filter="Paid">
+      Paid ({{ invoices|selectattr('status', 'equalto', 'Paid')|list|length }})
+    </button>
+  </div>
+
+  <!-- Invoices Table -->
+  <div class="bg-white dark:bg-surface-card-dark rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead class="bg-neutral-50 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 text-[11px] font-bold uppercase tracking-wider">
+          <tr>
+            <th class="px-6 py-4">Invoice #</th>
+            <th class="px-6 py-4">Client</th>
+            <th class="px-6 py-4">Email</th>
+            <th class="px-6 py-4">Phone</th>
+            <th class="px-6 py-4">Amount</th>
+            <th class="px-6 py-4">Date</th>
+            <th class="px-6 py-4">Status</th>
+            <th class="px-6 py-4"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-neutral-200 dark:divide-white/5" id="invoicesBody">
+          {% for invoice in invoices %}
+          <tr class="invoice-row hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors" data-status="{{ invoice.status }}">
+            <td class="px-6 py-4 font-bold text-sm font-mono dark:text-white">{{ invoice.invoice_number or ('#INV-' ~ invoice.id) }}</td>
+            <td class="px-6 py-4 text-sm font-medium dark:text-white">{{ invoice.client_name }}</td>
+            <td class="px-6 py-4 text-sm text-neutral-500 dark:text-neutral-400">{{ invoice.client_email or '—' }}</td>
+            <td class="px-6 py-4 text-sm text-neutral-500 dark:text-neutral-400">{{ invoice.client_phone or '—' }}</td>
+            <td class="px-6 py-4 font-bold text-sm dark:text-white">GH₵{{ "%.2f"|format(invoice.amount) }}</td>
+            <td class="px-6 py-4 text-sm text-neutral-500 dark:text-neutral-400">{{ invoice.date_created.strftime('%b %d, %Y') }}</td>
+            <td class="px-6 py-4">
+              {% if invoice.status == 'Paid' %}
+                <span class="px-3 py-1 bg-accent text-white text-[11px] font-bold rounded-full">Paid</span>
+              {% else %}
+                <span class="px-3 py-1 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 text-[11px] font-bold rounded-full">{{ invoice.status }}</span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
+              <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" class="text-accent dark:text-accent-light font-bold text-xs border border-accent/30 dark:border-accent/50 px-2 py-1 rounded hover:bg-accent/5">VIEW</a>
+              {% if invoice.status != 'Paid' %}
+                <a href="{{ url_for('invoices.edit', invoice_id=invoice.id) }}" class="text-accent dark:text-accent-light font-bold text-xs border border-accent/30 dark:border-accent/50 px-2 py-1 rounded hover:bg-accent/5">EDIT</a>
+                <form action="{{ url_for('invoices.pay', invoice_id=invoice.id) }}" method="POST" style="display:inline;">
+                  <button type="submit" class="text-white bg-accent font-bold text-xs px-2 py-1 rounded hover:bg-accent-dark">PAY</button>
+                </form>
+              {% else %}
+                <a href="{{ url_for('invoices.view_receipt', invoice_id=invoice.id) }}" class="text-accent dark:text-accent-light font-bold text-xs border border-accent/30 dark:border-accent/50 px-2 py-1 rounded hover:bg-accent/5">RECEIPT</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="px-6 py-12 text-center">
+              <div class="flex flex-col items-center gap-3">
+                <span class="material-symbols-outlined text-5xl text-neutral-300 dark:text-neutral-600">description</span>
+                <p class="text-neutral-500 dark:text-neutral-400">No invoices created yet</p>
+                <a href="{{ url_for('invoices.create') }}" class="text-accent dark:text-accent-light font-bold hover:underline">Create your first invoice →</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function filterInvoices(status) {
+  const rows = document.querySelectorAll('.invoice-row');
+  const buttons = document.querySelectorAll('.filter-btn');
+
+  buttons.forEach(btn => {
+    if (btn.dataset.filter === status) {
+      btn.classList.add('bg-accent', 'text-white');
+      btn.classList.remove('bg-white', 'dark:bg-surface-card-dark', 'text-neutral-500', 'dark:text-neutral-400');
+    } else {
+      btn.classList.remove('bg-accent', 'text-white');
+      btn.classList.add('bg-white', 'dark:bg-surface-card-dark', 'text-neutral-500', 'dark:text-neutral-400');
+    }
+  });
+
+  rows.forEach(row => {
+    if (status === 'all' || row.dataset.status === status) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+</script>
+{% endblock %}

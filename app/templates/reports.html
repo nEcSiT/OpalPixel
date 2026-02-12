@@ -1,0 +1,463 @@
+{% extends "base_admin.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <!-- Header with Filters -->
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-2xl font-extrabold tracking-tight dark:text-white">Reports & Analytics</h2>
+      <p class="text-neutral-500 dark:text-neutral-400 font-medium">Financial overview and performance metrics</p>
+    </div>
+    
+    <!-- Time Period Filters -->
+    <div class="flex flex-wrap items-center gap-3">
+      <form id="filterForm" method="GET" class="flex flex-wrap items-center gap-3">
+        <!-- Year Selector -->
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="changeYear(-1)" class="size-8 rounded-lg border border-neutral-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5 dark:text-neutral-400 transition-colors">
+            <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+          </button>
+          <select name="year" id="yearSelect" onchange="document.getElementById('filterForm').submit()" class="px-4 py-2 text-sm border border-neutral-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent dark:bg-surface-card-dark dark:text-white bg-white font-bold min-w-[100px]">
+            {% for year in available_years %}
+            <option value="{{ year }}" {{ 'selected' if year|string == selected_year else '' }}>{{ year }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" onclick="changeYear(1)" class="size-8 rounded-lg border border-neutral-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5 dark:text-neutral-400 transition-colors">
+            <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+          </button>
+        </div>
+        
+        <!-- Month Selector -->
+        <select name="month" id="monthSelect" onchange="document.getElementById('filterForm').submit()" class="px-4 py-2 text-sm border border-neutral-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent dark:bg-surface-card-dark dark:text-white bg-white font-medium">
+          <option value="">All Months</option>
+          <option value="1" {{ 'selected' if selected_month == '1' else '' }}>January</option>
+          <option value="2" {{ 'selected' if selected_month == '2' else '' }}>February</option>
+          <option value="3" {{ 'selected' if selected_month == '3' else '' }}>March</option>
+          <option value="4" {{ 'selected' if selected_month == '4' else '' }}>April</option>
+          <option value="5" {{ 'selected' if selected_month == '5' else '' }}>May</option>
+          <option value="6" {{ 'selected' if selected_month == '6' else '' }}>June</option>
+          <option value="7" {{ 'selected' if selected_month == '7' else '' }}>July</option>
+          <option value="8" {{ 'selected' if selected_month == '8' else '' }}>August</option>
+          <option value="9" {{ 'selected' if selected_month == '9' else '' }}>September</option>
+          <option value="10" {{ 'selected' if selected_month == '10' else '' }}>October</option>
+          <option value="11" {{ 'selected' if selected_month == '11' else '' }}>November</option>
+          <option value="12" {{ 'selected' if selected_month == '12' else '' }}>December</option>
+        </select>
+        
+        <!-- Reset Filter -->
+        {% if selected_month %}
+        <a href="{{ url_for('admin.reports', year=selected_year) }}" class="px-3 py-2 text-sm text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition-colors font-medium">
+          Clear Month
+        </a>
+        {% endif %}
+      </form>
+      
+      <div class="h-8 w-px bg-neutral-200 dark:bg-white/10"></div>
+      
+      <a href="{{ url_for('exports.all_csv') }}" class="inline-flex items-center gap-2 bg-accent text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-accent-dark neon-glow transition-colors">
+        <span class="material-symbols-outlined text-[18px]">download</span>
+        Export
+      </a>
+    </div>
+  </div>
+
+  <!-- Period Indicator -->
+  <div class="bg-neutral-50 dark:bg-surface-card-dark border border-neutral-200 dark:border-white/10 rounded-xl p-4 mb-6 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-black dark:text-accent">calendar_month</span>
+      <div>
+        <p class="font-bold text-black dark:text-white">
+          {% if selected_month %}
+            {{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][selected_month|int - 1] }} {{ selected_year }}
+          {% else %}
+            Full Year {{ selected_year }}
+          {% endif %}
+        </p>
+        <p class="text-sm text-neutral-500 dark:text-neutral-400">Showing data for the selected period</p>
+      </div>
+    </div>
+    <div class="text-right">
+      <p class="text-2xl font-extrabold text-black dark:text-white">{{ report.total_invoices }}</p>
+      <p class="text-xs text-neutral-500 dark:text-neutral-400">Total Invoices</p>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white dark:bg-surface-card-dark p-6 rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-neutral-500 dark:text-neutral-400 text-sm font-medium">Total Revenue</p>
+        {% if report.revenue_growth > 0 %}
+        <span class="text-xs px-2 py-1 bg-neutral-100 dark:bg-white/10 text-neutral-700 dark:text-neutral-300 rounded-full font-bold">+{{ report.revenue_growth }}%</span>
+        {% elif report.revenue_growth < 0 %}
+        <span class="text-xs px-2 py-1 bg-neutral-100 dark:bg-white/10 text-neutral-700 dark:text-neutral-300 rounded-full font-bold">{{ report.revenue_growth }}%</span>
+        {% else %}
+        <span class="text-xs px-2 py-1 bg-neutral-200 dark:bg-white/10 text-neutral-700 dark:text-neutral-300 rounded-full font-bold">0%</span>
+        {% endif %}
+      </div>
+      <p class="text-3xl font-extrabold dark:text-white">GH₵{{ "{:,.2f}".format(report.total_revenue) }}</p>
+      <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-2">From {{ report.paid_invoices }} paid invoices</p>
+    </div>
+    <div class="bg-white dark:bg-surface-card-dark p-6 rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-neutral-500 dark:text-neutral-400 text-sm font-medium">Pending Amount</p>
+        <span class="text-xs px-2 py-1 bg-neutral-200 dark:bg-white/10 text-neutral-700 dark:text-neutral-300 rounded-full font-bold">{{ report.pending_invoices }} invoices</span>
+      </div>
+      <p class="text-3xl font-extrabold text-neutral-600 dark:text-neutral-400">GH₵{{ "{:,.2f}".format(report.pending_amount) }}</p>
+      <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-2">Awaiting payment</p>
+    </div>
+    <div class="bg-white dark:bg-surface-card-dark p-6 rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-neutral-500 dark:text-neutral-400 text-sm font-medium">Total Invoices</p>
+        <span class="text-xs px-2 py-1 bg-neutral-200 dark:bg-white/10 text-neutral-700 dark:text-neutral-300 rounded-full font-bold">{{ selected_year }}</span>
+      </div>
+      <p class="text-3xl font-extrabold dark:text-white">{{ report.total_invoices }}</p>
+      <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-2">{{ report.invoices_this_month }} this month</p>
+    </div>
+    <div class="bg-white dark:bg-surface-card-dark p-6 rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-neutral-500 dark:text-neutral-400 text-sm font-medium">Average Invoice</p>
+        <span class="text-xs px-2 py-1 bg-neutral-200 dark:bg-white/10 text-neutral-700 dark:text-neutral-300 rounded-full font-bold">{{ report.unique_clients }} clients</span>
+      </div>
+      <p class="text-3xl font-extrabold dark:text-white">GH₵{{ "{:,.2f}".format(report.avg_invoice) }}</p>
+      <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-2">Per invoice average</p>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Revenue Chart -->
+    <div class="bg-white dark:bg-surface-card-dark p-6 rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-lg font-bold dark:text-white">
+            {% if selected_month %}Daily Revenue{% else %}Monthly Revenue{% endif %}
+          </h3>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400">
+            {% if selected_month %}
+              {{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][selected_month|int - 1] }} {{ selected_year }}
+            {% else %}
+              {{ selected_year }} Overview
+            {% endif %}
+          </p>
+        </div>
+        <div class="flex items-center gap-4 text-sm">
+          <span class="flex items-center gap-2 dark:text-neutral-400"><span class="size-3 rounded-full bg-accent"></span> Revenue</span>
+        </div>
+      </div>
+      <canvas id="revenueChart" height="250"></canvas>
+    </div>
+
+    <!-- Invoice Status Pie -->
+    <div class="bg-white dark:bg-surface-card-dark p-6 rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-lg font-bold dark:text-white">Invoice Status</h3>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400">Distribution for selected period</p>
+        </div>
+      </div>
+      <div class="flex items-center justify-center">
+        <canvas id="statusChart" height="220" width="280"></canvas>
+      </div>
+      <div class="flex justify-center gap-8 mt-4">
+        <span class="flex items-center gap-2 text-sm dark:text-neutral-400"><span class="size-3 rounded-full bg-neutral-600 dark:bg-accent"></span> Paid ({{ report.paid_invoices }})</span>
+        <span class="flex items-center gap-2 text-sm dark:text-neutral-400"><span class="size-3 rounded-full bg-neutral-300 dark:bg-neutral-500"></span> Pending ({{ report.pending_invoices }})</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Second Row -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Top Workers -->
+    <div class="bg-white dark:bg-surface-card-dark p-6 rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm">
+      <h3 class="text-lg font-bold mb-2 dark:text-white">Top Performers</h3>
+      <p class="text-sm text-neutral-500 dark:text-neutral-400 mb-6">Based on revenue in selected period</p>
+      <div class="space-y-4">
+        {% for worker in top_workers %}
+        <div class="flex items-center gap-4">
+          <div class="text-lg font-bold text-neutral-500 dark:text-neutral-400 w-6">{{ loop.index }}</div>
+          {% if worker.image_path %}
+          {% if worker.image_path.startswith('http') %}
+          <img src="{{ worker.image_path }}" alt="" class="size-10 rounded-full object-cover">
+          {% else %}
+          <img src="{{ url_for('static', filename=worker.image_path) }}" alt="" class="size-10 rounded-full object-cover">
+          {% endif %}
+          {% else %}
+          <div class="size-10 rounded-full bg-neutral-100 dark:bg-white/10 flex items-center justify-center text-black dark:text-white font-bold text-sm">
+            {{ worker.full_name[:2].upper() }}
+          </div>
+          {% endif %}
+          <div class="flex-1 min-w-0">
+            <p class="font-bold text-sm truncate dark:text-white">{{ worker.full_name }}</p>
+            <p class="text-xs text-neutral-500 dark:text-neutral-400">{{ worker.invoice_count }} invoices</p>
+          </div>
+          <div class="text-right">
+            <p class="font-bold text-sm text-black dark:text-white">GH₵{{ "{:,.0f}".format(worker.revenue) }}</p>
+          </div>
+        </div>
+        {% else %}
+        <p class="text-center text-neutral-500 dark:text-neutral-400 py-4">No data for this period</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Monthly/Daily Comparison -->
+    <div class="lg:col-span-2 bg-white dark:bg-surface-card-dark p-6 rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-lg font-bold dark:text-white">
+            {% if selected_month %}Invoice Count (Daily){% else %}Invoice Count (Monthly){% endif %}
+          </h3>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400">Paid vs Pending breakdown</p>
+        </div>
+        <div class="flex items-center gap-4 text-sm">
+          <span class="flex items-center gap-2 dark:text-neutral-400"><span class="size-3 rounded-full bg-neutral-600 dark:bg-accent"></span> Paid</span>
+          <span class="flex items-center gap-2 dark:text-neutral-400"><span class="size-3 rounded-full bg-neutral-300 dark:bg-neutral-500"></span> Pending</span>
+        </div>
+      </div>
+      <canvas id="monthlyChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- Yearly Trend (only show when viewing full year) -->
+  {% if not selected_month %}
+  <div class="bg-white dark:bg-surface-card-dark p-6 rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm mb-8">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h3 class="text-lg font-bold dark:text-white">Year-over-Year Revenue</h3>
+        <p class="text-sm text-neutral-500 dark:text-neutral-400">Historical revenue comparison across all years</p>
+      </div>
+    </div>
+    <canvas id="yearlyChart" height="150"></canvas>
+  </div>
+  {% endif %}
+
+  <!-- Recent Transactions -->
+  <div class="bg-white dark:bg-surface-card-dark rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm overflow-hidden">
+    <div class="p-6 border-b border-neutral-200 dark:border-white/10 flex items-center justify-between">
+      <div>
+        <h3 class="text-lg font-bold dark:text-white">Recent Transactions</h3>
+        <p class="text-sm text-neutral-500 dark:text-neutral-400">Latest invoices in selected period</p>
+      </div>
+      <a href="{{ url_for('admin.document_logs') }}" class="text-accent dark:text-accent-light text-sm font-bold hover:underline">View All →</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead class="bg-neutral-50 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 text-[11px] font-bold uppercase tracking-wider">
+          <tr>
+            <th class="px-6 py-4">Invoice</th>
+            <th class="px-6 py-4">Client</th>
+            <th class="px-6 py-4">Worker</th>
+            <th class="px-6 py-4">Amount</th>
+            <th class="px-6 py-4">Date</th>
+            <th class="px-6 py-4">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-neutral-200 dark:divide-white/5">
+          {% for invoice in recent_invoices %}
+          <tr class="hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors">
+            <td class="px-6 py-4 font-mono font-bold text-sm dark:text-white">{{ invoice.invoice_number or ('#INV-' ~ invoice.id) }}</td>
+            <td class="px-6 py-4 text-sm dark:text-white">{{ invoice.client_name }}</td>
+            <td class="px-6 py-4 text-sm text-neutral-500 dark:text-neutral-400">{{ invoice.creator.full_name if invoice.creator else '—' }}</td>
+            <td class="px-6 py-4 font-bold text-sm dark:text-white">GH₵{{ "{:,.2f}".format(invoice.amount) }}</td>
+            <td class="px-6 py-4 text-sm text-neutral-500 dark:text-neutral-400">{{ invoice.date_created.strftime('%b %d, %Y') }}</td>
+            <td class="px-6 py-4">
+              {% if invoice.status == 'Paid' %}
+              <span class="px-3 py-1 bg-accent text-white text-[11px] font-bold rounded-full">Paid</span>
+              {% else %}
+              <span class="px-3 py-1 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 text-[11px] font-bold rounded-full">Pending</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="px-6 py-8 text-center text-neutral-500 dark:text-neutral-400">No transactions in this period</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Data from server
+const monthlyLabels = {{ monthly_labels|safe }};
+const monthlyRevenue = {{ monthly_revenue|safe }};
+const monthlyPaid = {{ monthly_paid|safe }};
+const monthlyPending = {{ monthly_pending|safe }};
+const dailyLabels = {{ daily_labels|safe }};
+const dailyRevenue = {{ daily_revenue|safe }};
+const dailyCounts = {{ daily_counts|safe }};
+const yearlyLabels = {{ yearly_labels|safe }};
+const yearlyRevenue = {{ yearly_revenue|safe }};
+const selectedMonth = "{{ selected_month }}";
+
+// Revenue Chart (Monthly or Daily based on selection)
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+new Chart(revenueCtx, {
+  type: 'line',
+  data: {
+    labels: selectedMonth ? dailyLabels : monthlyLabels,
+    datasets: [{
+      label: 'Revenue',
+      data: selectedMonth ? dailyRevenue : monthlyRevenue,
+      borderColor: '#6366f1',
+      backgroundColor: 'rgba(99, 102, 241, 0.1)',
+      fill: true,
+      tension: 0.4,
+      pointRadius: 4,
+      pointHoverRadius: 6
+    }]
+  },
+  options: {
+    responsive: true,
+    interaction: {
+      intersect: false,
+      mode: 'index'
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            return 'GH₵' + context.raw.toLocaleString();
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return 'GH₵' + value.toLocaleString();
+          }
+        }
+      }
+    }
+  }
+});
+
+// Status Pie Chart
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+new Chart(statusCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Paid', 'Pending'],
+    datasets: [{
+      data: [{{ report.paid_invoices }}, {{ report.pending_invoices }}],
+      backgroundColor: ['#6366f1', '#d4d4d4'],
+      borderWidth: 0
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = total > 0 ? Math.round((context.raw / total) * 100) : 0;
+            return context.label + ': ' + context.raw + ' (' + percentage + '%)';
+          }
+        }
+      }
+    },
+    cutout: '70%'
+  }
+});
+
+// Monthly/Daily Stacked Bar Chart
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+new Chart(monthlyCtx, {
+  type: 'bar',
+  data: {
+    labels: selectedMonth ? dailyLabels : monthlyLabels,
+    datasets: [
+      {
+        label: 'Paid',
+        data: selectedMonth ? dailyCounts : monthlyPaid,
+        backgroundColor: '#6366f1',
+        borderRadius: 4
+      },
+      {
+        label: 'Pending',
+        data: selectedMonth ? [] : monthlyPending,
+        backgroundColor: '#d4d4d4',
+        borderRadius: 4
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false }
+    },
+    scales: {
+      x: { stacked: true },
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        ticks: { stepSize: 1 }
+      }
+    }
+  }
+});
+
+// Yearly Chart (only if element exists)
+const yearlyCtxEl = document.getElementById('yearlyChart');
+if (yearlyCtxEl) {
+  const yearlyCtx = yearlyCtxEl.getContext('2d');
+  new Chart(yearlyCtx, {
+    type: 'bar',
+    data: {
+      labels: yearlyLabels,
+      datasets: [{
+        label: 'Annual Revenue',
+        data: yearlyRevenue,
+        backgroundColor: '#6366f1',
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return 'GH₵' + context.raw.toLocaleString();
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return 'GH₵' + value.toLocaleString();
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// Year navigation function
+function changeYear(delta) {
+  const select = document.getElementById('yearSelect');
+  const currentIndex = select.selectedIndex;
+  const newIndex = currentIndex - delta; // Reversed because years are in descending order
+  
+  if (newIndex >= 0 && newIndex < select.options.length) {
+    select.selectedIndex = newIndex;
+    document.getElementById('filterForm').submit();
+  }
+}
+</script>
+{% endblock %}

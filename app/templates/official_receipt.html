@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Official Receipt - Receipt Manager</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='uploads/Logo opalpixel_1.png') }}"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700;800;900&text=%E2%82%B5&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            extend: {
+                fontFamily: { "display": ["Inter", "Noto Sans", "sans-serif"] },
+                colors: {
+                    accent: { DEFAULT: '#6366f1', light: '#818cf8', dark: '#4f46e5', 50: '#eef2ff' },
+                    surface: { light: '#ffffff', dark: '#0f1117', 'card-dark': '#181a20' }
+                }
+            }
+        }
+    }
+</script>
+<style>
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    @page { size: A5; margin: 8mm; }
+    @media print {
+        .no-print { display: none !important; }
+        .print-hidden { display: none !important; }
+        body { background-color: white !important; padding: 0 !important; }
+        .document-sheet { box-shadow: none !important; margin: 0 !important; width: 148mm !important; min-height: 210mm !important; }
+    }
+    .document-sheet { width: 148mm; min-height: 210mm; margin: 0 auto; }
+    .watermark {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-35deg);
+        font-size: 120px;
+        font-weight: 900;
+        color: rgba(0, 0, 0, 0.04);
+        pointer-events: none;
+        user-select: none;
+        z-index: 10;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+    }
+    .neon-glow { box-shadow: 0 0 20px rgba(99,102,241,0.15); }
+    .dark .neon-glow { box-shadow: 0 0 20px rgba(99,102,241,0.3); }
+    .transitioning * { transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
+</style>
+<script>
+    (function(){var t=localStorage.getItem('opalpixel-theme');if(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark');})();
+</script>
+</head>
+<body class="bg-neutral-100 dark:bg-surface-dark font-display text-black dark:text-neutral-100">
+<div class="no-print relative flex h-auto w-full flex-col overflow-x-hidden">
+<header class="print-hidden flex items-center justify-between whitespace-nowrap border-b border-neutral-200 dark:border-white/10 bg-white dark:bg-surface-card-dark px-6 py-3 sticky top-0 z-50">
+<div class="flex items-center gap-4">
+<div class="size-6 text-black dark:text-white">
+<svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z" fill="currentColor" fill-rule="evenodd"></path>
+<path clip-rule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<h2 class="text-lg font-bold tracking-tight text-black dark:text-white">Receipt Manager</h2>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-sm font-medium text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition-colors" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+<a class="text-sm font-medium text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition-colors" href="{{ url_for('admin.invoices_list') }}">Invoices</a>
+<a class="text-sm font-semibold text-accent" href="{{ url_for('admin.receipts_list') }}">Receipts</a>
+<a class="text-sm font-medium text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white transition-colors" href="{{ url_for('admin.logs') }}">Reports</a>
+</nav>
+<div class="h-6 w-px bg-neutral-200 dark:bg-white/10 mx-2"></div>
+<div class="flex gap-2">
+<button class="flex items-center justify-center rounded-lg h-9 w-9 bg-neutral-100 dark:bg-white/10 hover:bg-neutral-200 dark:hover:bg-white/20 transition-colors" onclick="window.print()">
+<span class="material-symbols-outlined text-[20px]">print</span>
+</button>
+<button id="downloadReceipt" class="flex items-center justify-center rounded-lg h-9 w-9 bg-neutral-100 dark:bg-white/10 hover:bg-neutral-200 dark:hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+<button class="flex items-center justify-center rounded-lg h-9 w-9 bg-neutral-100 dark:bg-white/10 hover:bg-neutral-200 dark:hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-[20px]">share</span>
+</button>
+<button onclick="toggleTheme()" class="flex items-center justify-center rounded-lg h-9 w-9 bg-neutral-100 dark:bg-white/10 hover:bg-neutral-200 dark:hover:bg-white/20 transition-colors" title="Toggle theme">
+    <span class="material-symbols-outlined text-[20px]" id="themeIcon">dark_mode</span>
+</button>
+</div>
+</div>
+</header>
+<div class="print-hidden max-w-[1000px] mx-auto w-full px-6 py-4">
+<div class="flex items-center gap-2 mb-2 text-neutral-500 dark:text-neutral-400 text-sm font-medium">
+<a class="hover:text-black dark:hover:text-white dark:text-neutral-400" href="{{ url_for('admin.dashboard') }}">Receipts</a>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-accent">{{ receipt.receipt_number }}</span>
+</div>
+</div>
+</div>
+<main class="flex flex-1 justify-center py-1.5 md:py-3 px-1.5 md:px-0">
+<div class="document-sheet relative bg-white shadow-2xl rounded-xl overflow-hidden flex flex-col">
+<div class="watermark no-print">PAID</div>
+<div class="p-5 md:p-7 flex-1 flex flex-col relative z-20">
+<div class="flex justify-between items-start gap-4 mb-4">
+    <div class="space-y-3">
+        <img src="{{ url_for('static', filename='uploads/Logo opalpixel_1.png') }}" alt="OpalPixel logo" class="h-16 w-auto object-contain">
+        <div class="text-[10px] text-neutral-900 space-y-0.5">
+            <p class="font-semibold">Bank: UBA ACC. 00788320001572</p>
+            <p>Name: Nicholas Dornyo & Lyzibond Adu-Gyamfi</p>
+            <p class="font-semibold mt-1">Mobile Money: 0508748992</p>
+            <p>Name: Nicholas Dornyo</p>
+        </div>
+    </div>
+    <div class="text-right">
+        <h1 class="text-3xl font-black tracking-tight text-black uppercase mb-1">Receipt</h1>
+        <p class="text-[10px] font-bold text-neutral-800">{{ receipt.receipt_number }}</p>
+        <div class="mt-3 space-y-1 text-[10px] text-neutral-900">
+            <p><span class="font-semibold text-neutral-900">Date:</span> {{ receipt.payment_date.strftime('%b %d, %Y, %H:%M') }}</p>
+            <p><span class="font-semibold text-neutral-900">Status:</span> Paid</p>
+        </div>
+    </div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4 border-y border-neutral-100 py-3">
+<div class="space-y-3">
+<h3 class="text-[11px] font-bold uppercase tracking-widest text-neutral-800">Processed By</h3>
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-neutral-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-neutral-900">person</span>
+</div>
+<div>
+<p class="text-[13px] font-bold text-black">{{ invoice.creator.full_name if invoice.creator else 'Admin System' }}</p>
+<p class="text-[11px] text-neutral-900">{{ invoice.creator.position if invoice.creator else 'System Administrator' }}</p>
+</div>
+</div>
+</div>
+<div class="space-y-2">
+<h3 class="text-[11px] font-bold uppercase tracking-widest text-neutral-800">Client</h3>
+<p class="text-sm font-semibold text-black">{{ invoice.client_name }}</p>
+{% if invoice.client_email %}<p class="text-[11px] text-neutral-900">{{ invoice.client_email }}</p>{% endif %}
+{% if invoice.client_phone %}<p class="text-[11px] text-neutral-900">{{ invoice.client_phone }}</p>{% endif %}
+{% if invoice.client_address %}<p class="text-[11px] text-neutral-900">{{ invoice.client_address }}</p>{% endif %}
+<p class="text-[10px] text-neutral-900 mt-1">Ref: {{ invoice.invoice_number or ('OPL-' ~ '%04d'|format(invoice.id) ~ '-' ~ invoice.date_created.strftime('%y')) }}</p>
+</div>
+</div>
+{% set subtotal = invoice.items|sum(attribute='total', start=0) %}
+{% set tax_amount = invoice.tax_amount or (subtotal * (invoice.tax_rate or 0) / 100) %}
+{% set grand_total = invoice.amount %}
+<div class="mt-3 flex flex-col items-end border-t border-neutral-100 pt-3 pb-2">
+<div class="w-full md:w-64 space-y-1.5">
+<div class="flex justify-between items-center text-[12px]">
+<span class="text-neutral-900">Subtotal</span>
+<span class="font-medium text-black">GH₵{{ "%.2f"|format(subtotal) }}</span>
+</div>
+<div class="flex justify-between items-center text-[12px]">
+<span class="text-neutral-900">Tax ({{ '%.1f'|format(invoice.tax_rate or 0) }}%)</span>
+<span class="font-medium text-black">GH₵{{ "%.2f"|format(tax_amount) }}</span>
+</div>
+<div class="flex justify-between items-center pt-1.5 border-t border-neutral-100">
+<span class="text-[15px] font-bold text-black">Amount Paid</span>
+<span class="text-xl font-black text-black">GH₵{{ "%.2f"|format(receipt.amount_paid) }}</span>
+</div>
+</div>
+</div>
+<div class="mt-3 pt-2 border-t border-neutral-100 text-center space-y-1">
+    <p class="text-[9.5px] text-neutral-900">This document is a system-generated proof of payment. Please reference {{ receipt.receipt_number }} for inquiries.</p>
+</div>
+<div class="mt-4 pt-3 border-t border-neutral-200 text-[10px] text-neutral-900">
+    <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-neutral-800" style="font-size:14px">location_on</span>
+                <span>OpalPixel • 4 Sapele Loop, Accra, Ghana</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-neutral-800" style="font-size:14px">call</span>
+                <span>0508748992 / 0597213211</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-neutral-800" style="font-size:14px">mail</span>
+                <span>opalpixel.gh@gmail.com</span>
+            </div>
+        </div>
+        <div class="text-[9px] text-neutral-800 leading-relaxed">
+            <p class="font-semibold text-neutral-900 uppercase mb-1">Payment Notes</p>
+            <p>• This receipt confirms full payment received.</p>
+            <p>• Keep this document for your records.</p>
+            <p>• Contact us for any discrepancies within 7 days.</p>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+</main>
+<footer class="no-print py-10 text-center text-sm text-neutral-400 dark:text-neutral-600">
+<p>© 2026 OpalPixel Invoice System</p>
+</footer>
+<script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const downloadBtn = document.getElementById('downloadReceipt');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', async () => {
+                // Show loading state
+                const originalText = downloadBtn.innerHTML;
+                downloadBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm">refresh</span> Generating...';
+                downloadBtn.disabled = true;
+                
+                try {
+                    // Check if libraries are loaded
+                    if (typeof html2canvas === 'undefined') {
+                        throw new Error('html2canvas library not loaded');
+                    }
+                    if (typeof window.jspdf === 'undefined') {
+                        throw new Error('jsPDF library not loaded');
+                    }
+                    
+                    const { jsPDF } = window.jspdf;
+                    const sheet = document.querySelector('.document-sheet');
+                    if (!sheet) {
+                        throw new Error('Document sheet not found');
+                    }
+                    
+                    // Wait for all fonts to be fully loaded before capture
+                    await document.fonts.ready;
+                    
+                    // Generate canvas from HTML with optimized settings
+                    const canvas = await html2canvas(sheet, { 
+                        scale: 3,  // Higher scale for sharper text
+                        useCORS: true,
+                        allowTaint: true,
+                        logging: false,
+                        backgroundColor: '#ffffff',
+                        windowWidth: sheet.scrollWidth,
+                        windowHeight: sheet.scrollHeight,
+                        onclone: function(clonedDoc) {
+                            // Ensure font is applied in cloned document
+                            var el = clonedDoc.querySelector('.document-sheet');
+                            if (el) el.style.fontFamily = "'Inter', 'Noto Sans', sans-serif";
+                        }
+                    });
+                    
+                    // Use PNG for better text quality
+                    const imgData = canvas.toDataURL('image/png');
+                    
+                    // A5 dimensions in points: 419.53 x 595.28
+                    const pdf = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'pt',
+                        format: 'a5',
+                        compress: true
+                    });
+                    
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+                    
+                    // Calculate dimensions maintaining aspect ratio
+                    const canvasRatio = canvas.height / canvas.width;
+                    let imgWidth = pageWidth;
+                    let imgHeight = imgWidth * canvasRatio;
+                    
+                    // If image is taller than page, scale by height instead
+                    if (imgHeight > pageHeight) {
+                        imgHeight = pageHeight;
+                        imgWidth = imgHeight / canvasRatio;
+                    }
+                    
+                    // Center the image on the page
+                    const xOffset = (pageWidth - imgWidth) / 2;
+                    const yOffset = (pageHeight - imgHeight) / 2;
+                    
+                    pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight);
+                    
+                    pdf.save(`{{ invoice.client_name }}-{{ receipt.receipt_number }}.pdf`);
+                } catch (error) {
+                    console.error('PDF generation failed:', error);
+                    alert('Failed to generate PDF: ' + error.message);
+                } finally {
+                    downloadBtn.innerHTML = originalText;
+                    downloadBtn.disabled = false;
+                }
+            });
+        }
+    });
+</script>
+<script>
+function getTheme(){return localStorage.getItem('opalpixel-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');}
+function applyTheme(t){document.documentElement.classList.toggle('dark',t==='dark');var i=document.getElementById('themeIcon');if(i)i.textContent=t==='dark'?'light_mode':'dark_mode';}
+function toggleTheme(){var t=getTheme()==='dark'?'light':'dark';localStorage.setItem('opalpixel-theme',t);document.documentElement.classList.add('transitioning');applyTheme(t);setTimeout(()=>document.documentElement.classList.remove('transitioning'),300);}
+applyTheme(getTheme());
+</script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+{% extends "base_admin.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <!-- Header with Tabs -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div class="flex items-center gap-4">
+      <div class="flex bg-white dark:bg-surface-card-dark rounded-lg p-1 border border-neutral-200 dark:border-white/10">
+        <button onclick="filterDocuments('all')" class="doc-tab px-4 py-2 rounded-md text-sm font-bold transition-colors bg-accent text-white" data-tab="all">
+          All Records
+        </button>
+        <button onclick="filterDocuments('invoice')" class="doc-tab px-4 py-2 rounded-md text-sm font-bold transition-colors text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-white/5" data-tab="invoice">
+          Invoices ({{ invoices|length }})
+        </button>
+        <button onclick="filterDocuments('receipt')" class="doc-tab px-4 py-2 rounded-md text-sm font-bold transition-colors text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-white/5" data-tab="receipt">
+          Receipts ({{ receipts|length }})
+        </button>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
+      <span class="material-symbols-outlined text-[18px]">schedule</span>
+      Last updated: <span id="lastUpdated">just now</span>
+    </div>
+  </div>
+
+  <!-- Filters Bar -->
+  <div class="bg-white dark:bg-surface-card-dark rounded-xl border border-neutral-200 dark:border-white/10 p-4 mb-6">
+    <form method="GET" class="flex flex-wrap items-center gap-4">
+      <div class="flex items-center gap-2 text-neutral-500 dark:text-neutral-400">
+        <span class="material-symbols-outlined text-[20px]">tune</span>
+      </div>
+      
+      <!-- Date Range -->
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-[18px] text-neutral-500 dark:text-neutral-400">calendar_today</span>
+        <span class="text-sm font-medium text-neutral-500 dark:text-neutral-400">Date Range</span>
+        <input type="date" name="start_date" value="{{ request.args.get('start_date', '') }}" class="px-3 py-1.5 text-sm border border-neutral-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent dark:bg-surface-card-dark dark:text-white">
+        <span class="text-neutral-500 dark:text-neutral-400">to</span>
+        <input type="date" name="end_date" value="{{ request.args.get('end_date', '') }}" class="px-3 py-1.5 text-sm border border-neutral-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent dark:bg-surface-card-dark dark:text-white">
+      </div>
+
+      <div class="h-6 w-[1px] bg-neutral-200 dark:bg-white/10"></div>
+
+      <!-- Worker Filter -->
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-[18px] text-neutral-500 dark:text-neutral-400">person</span>
+        <span class="text-sm font-medium text-neutral-500 dark:text-neutral-400">Worker</span>
+        <select name="worker_id" class="px-3 py-1.5 text-sm border border-neutral-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white dark:bg-surface-card-dark dark:text-white">
+          <option value="">All Workers</option>
+          {% for worker in workers %}
+          <option value="{{ worker.id }}" {{ 'selected' if request.args.get('worker_id') == worker.id|string else '' }}>{{ worker.full_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="h-6 w-[1px] bg-neutral-200 dark:bg-white/10"></div>
+
+      <!-- Status Filter -->
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-[18px] text-neutral-500 dark:text-neutral-400">label</span>
+        <span class="text-sm font-medium text-neutral-500 dark:text-neutral-400">Status</span>
+        <select name="status" class="px-3 py-1.5 text-sm border border-neutral-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white dark:bg-surface-card-dark dark:text-white">
+          <option value="">All Status</option>
+          <option value="Paid" {{ 'selected' if request.args.get('status') == 'Paid' else '' }}>Paid</option>
+          <option value="Pending" {{ 'selected' if request.args.get('status') == 'Pending' else '' }}>Pending</option>
+        </select>
+      </div>
+
+      <div class="flex-1"></div>
+
+      <button type="submit" class="px-6 py-2 bg-accent text-white rounded-lg font-bold text-sm hover:bg-accent-dark neon-glow transition-colors">
+        Apply Filters
+      </button>
+    </form>
+  </div>
+
+  <!-- Documents Table -->
+  <div class="bg-white dark:bg-surface-card-dark rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead class="bg-neutral-50 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 text-[11px] font-bold uppercase tracking-wider">
+          <tr>
+            <th class="px-6 py-4">Document ID</th>
+            <th class="px-6 py-4">Issued By</th>
+            <th class="px-6 py-4">Client Name</th>
+            <th class="px-6 py-4">Amount</th>
+            <th class="px-6 py-4">Date & Time</th>
+            <th class="px-6 py-4">Status</th>
+            <th class="px-6 py-4">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-neutral-200 dark:divide-white/5" id="documentsBody">
+          {% for doc in documents %}
+          <tr class="document-row hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors" data-type="{{ doc.type }}">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                {% if doc.type == 'invoice' %}
+                <span class="material-symbols-outlined text-black dark:text-white">description</span>
+                {% else %}
+                <span class="material-symbols-outlined text-neutral-600 dark:text-neutral-400">mail</span>
+                {% endif %}
+                <span class="font-bold text-sm font-mono">{{ doc.doc_number }}</span>
+              </div>
+            </td>
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                {% if doc.creator and doc.creator.image_path %}
+                {% if doc.creator.image_path.startswith('http') %}
+                <img src="{{ doc.creator.image_path }}" alt="" class="size-8 rounded-full object-cover">
+                {% else %}
+                <img src="{{ url_for('static', filename=doc.creator.image_path) }}" alt="" class="size-8 rounded-full object-cover">
+                {% endif %}
+                {% else %}
+                <div class="size-8 rounded-full bg-neutral-100 dark:bg-white/10 flex items-center justify-center text-black dark:text-white font-bold text-xs">
+                  {{ doc.creator.full_name[:2].upper() if doc.creator else '??' }}
+                </div>
+                {% endif %}
+                <span class="text-sm">{{ doc.creator.full_name if doc.creator else 'Unknown' }}</span>
+              </div>
+            </td>
+            <td class="px-6 py-4 text-sm">{{ doc.client_name }}</td>
+            <td class="px-6 py-4 font-bold text-sm dark:text-white">GH₵{{ "{:,.2f}".format(doc.amount) }}</td>
+            <td class="px-6 py-4">
+              <div class="text-sm">{{ doc.date.strftime('%b %d, %Y') }}</div>
+              <div class="text-xs text-neutral-500">{{ doc.date.strftime('%I:%M %p') }}</div>
+            </td>
+            <td class="px-6 py-4">
+              {% if doc.status == 'Paid' %}
+              <span class="inline-flex items-center gap-1 px-3 py-1 bg-accent text-white text-[11px] font-bold rounded-full">
+                <span class="size-1.5 rounded-full bg-white"></span> PAID
+              </span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-3 py-1 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 text-[11px] font-bold rounded-full">
+                <span class="size-1.5 rounded-full bg-neutral-500"></span> PENDING
+              </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4">
+              <div class="relative group">
+                <button class="size-8 rounded-full hover:bg-neutral-100 dark:hover:bg-white/10 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-neutral-500 dark:text-neutral-400">more_vert</span>
+                </button>
+                <div class="hidden group-hover:block absolute right-0 top-full mt-1 w-40 bg-white dark:bg-surface-card-dark rounded-lg shadow-xl border border-neutral-200 dark:border-white/10 z-50">
+                  {% if doc.type == 'invoice' %}
+                  <a href="{{ url_for('invoices.view', invoice_id=doc.id) }}" class="flex items-center gap-2 px-3 py-2 text-sm text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-white/5 rounded-t-lg">
+                    <span class="material-symbols-outlined text-[18px]">visibility</span> View
+                  </a>
+                  {% if doc.status != 'Paid' %}
+                  <a href="{{ url_for('invoices.edit', invoice_id=doc.id) }}" class="flex items-center gap-2 px-3 py-2 text-sm text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-white/5">
+                    <span class="material-symbols-outlined text-[18px]">edit</span> Edit
+                  </a>
+                  {% endif %}
+                  {% else %}
+                  <a href="{{ url_for('invoices.view_receipt', invoice_id=doc.invoice_id) }}" class="flex items-center gap-2 px-3 py-2 text-sm text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-white/5 rounded-t-lg">
+                    <span class="material-symbols-outlined text-[18px]">visibility</span> View
+                  </a>
+                  {% endif %}
+                  <button onclick="downloadDocument('{{ doc.type }}', {{ doc.id }})" class="flex items-center gap-2 px-3 py-2 text-sm text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-white/5 w-full rounded-b-lg">
+                    <span class="material-symbols-outlined text-[18px]">download</span> Download
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="px-6 py-12 text-center">
+              <div class="flex flex-col items-center gap-3">
+                <span class="material-symbols-outlined text-5xl text-neutral-200 dark:text-neutral-600">folder_open</span>
+                <p class="text-neutral-500 dark:text-neutral-400">No documents found</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if documents %}
+    <div class="px-6 py-4 border-t border-neutral-200 dark:border-white/10 flex items-center justify-between">
+      <p class="text-sm text-neutral-500 dark:text-neutral-400">Showing 1 to {{ documents|length }} of {{ total_count }} entries</p>
+      <div class="flex items-center gap-1">
+        <button class="size-8 rounded-lg border border-neutral-200 dark:border-white/10 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-white/5">
+          <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+        </button>
+        <button class="size-8 rounded-lg bg-accent text-white flex items-center justify-center font-bold text-sm">1</button>
+        {% if total_count > 10 %}
+        <button class="size-8 rounded-lg border border-neutral-200 dark:border-white/10 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-white/5 font-bold text-sm">2</button>
+        <button class="size-8 rounded-lg border border-neutral-200 dark:border-white/10 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-white/5 font-bold text-sm">3</button>
+        <span class="px-2 text-neutral-500 dark:text-neutral-400">...</span>
+        <button class="size-8 rounded-lg border border-neutral-200 dark:border-white/10 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-white/5 font-bold text-sm">{{ (total_count // 10) + 1 }}</button>
+        {% endif %}
+        <button class="size-8 rounded-lg border border-neutral-200 dark:border-white/10 flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-white/5">
+          <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+        </button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterDocuments(type) {
+  const tabs = document.querySelectorAll('.doc-tab');
+  const rows = document.querySelectorAll('.document-row');
+  
+  // Update tabs
+  tabs.forEach(tab => {
+    if (tab.dataset.tab === type) {
+      tab.classList.add('bg-accent', 'text-white');
+      tab.classList.remove('text-neutral-500', 'dark:text-neutral-400', 'hover:bg-neutral-50', 'dark:hover:bg-white/5');
+    } else {
+      tab.classList.remove('bg-accent', 'text-white');
+      tab.classList.add('text-neutral-500', 'dark:text-neutral-400', 'hover:bg-neutral-50', 'dark:hover:bg-white/5');
+    }
+  });
+  
+  // Filter rows
+  rows.forEach(row => {
+    if (type === 'all' || row.dataset.type === type) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+
+function downloadDocument(type, id) {
+  if (type === 'invoice') {
+    window.location.href = `/invoice/${id}`;
+  } else {
+    window.location.href = `/receipt/${id}`;
+  }
+}
+
+// Update "last updated" time
+setInterval(() => {
+  const el = document.getElementById('lastUpdated');
+  if (el) el.textContent = 'just now';
+}, 60000);
+</script>
+{% endblock %}

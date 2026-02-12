@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpalPixel Finance Portal</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='uploads/Logo opalpixel_1.png') }}">
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700;800;900&text=%E2%82%B5&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'Noto Sans', 'sans-serif'] },
+          colors: {
+            accent: { DEFAULT: '#6366f1', light: '#818cf8', dark: '#4f46e5', 50: '#eef2ff' },
+            surface: {
+              light: '#ffffff',
+              dark: '#0f1117',
+              'card-light': '#ffffff',
+              'card-dark': '#181a20',
+              'hover-light': '#f5f5f5',
+              'hover-dark': '#1e2028',
+            },
+            sidebar: { light: '#fafafa', dark: '#13141a' },
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 10px; }
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); }
+    .sidebar-wrap { transition: width 0.3s cubic-bezier(.4,0,.2,1), transform 0.3s cubic-bezier(.4,0,.2,1); }
+    @media (max-width: 1023px) {
+      .sidebar-wrap { position: fixed; z-index: 50; transform: translateX(-100%); }
+      .sidebar-wrap.open { transform: translateX(0); }
+    }
+    @media (min-width: 1024px) {
+      .sidebar-wrap.collapsed { width: 72px; }
+      .sidebar-wrap.collapsed .nav-label,
+      .sidebar-wrap.collapsed .sidebar-header-text,
+      .sidebar-wrap.collapsed .sidebar-user-info,
+      .sidebar-wrap.collapsed .sidebar-section-title,
+      .sidebar-wrap.collapsed .sidebar-create-text { display: none; }
+      .sidebar-wrap.collapsed .sidebar-logo { justify-content: center; }
+      .sidebar-wrap.collapsed .nav-link { justify-content: center; padding-left: 0; padding-right: 0; }
+      .sidebar-wrap.collapsed .nav-link .material-symbols-outlined { margin: 0; }
+      .sidebar-wrap.collapsed .sidebar-user { justify-content: center; }
+      .sidebar-wrap.collapsed .sidebar-user img,
+      .sidebar-wrap.collapsed .sidebar-user .user-avatar { margin: 0; }
+      .sidebar-wrap.collapsed .sidebar-create-btn { padding-left: 0; padding-right: 0; justify-content: center; }
+      .sidebar-wrap.collapsed .sidebar-create-btn .material-symbols-outlined { margin: 0; }
+    }
+    .neon-glow { box-shadow: 0 0 20px rgba(99,102,241,0.15), 0 0 40px rgba(99,102,241,0.05); }
+    .dark .neon-glow { box-shadow: 0 0 25px rgba(99,102,241,0.3), 0 0 50px rgba(99,102,241,0.1); }
+    .nav-active { position: relative; }
+    .nav-active::before { content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px; background:#6366f1; border-radius:0 3px 3px 0; }
+    html.transitioning, html.transitioning *, html.transitioning *::before, html.transitioning *::after {
+      transition: background-color 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s !important;
+    }
+  </style>
+</head>
+<body class="bg-neutral-50 dark:bg-surface-dark text-neutral-900 dark:text-neutral-100 min-h-screen flex overflow-hidden">
+  <div id="sidebarOverlay" class="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar-wrap w-[260px] bg-sidebar-light dark:bg-sidebar-dark border-r border-neutral-200/80 dark:border-white/5 flex flex-col h-screen shrink-0">
+    <div class="h-16 px-5 flex items-center justify-between sidebar-logo">
+      <div class="flex items-center gap-3">
+        <img src="{{ url_for('static', filename='uploads/Logo opalpixel_1.png') }}" alt="OP" class="size-10 object-contain shrink-0 dark:brightness-0 dark:invert">
+        <span class="sidebar-header-text text-[15px] font-bold tracking-tight text-neutral-800 dark:text-white">OpalPixel</span>
+      </div>
+      <button class="lg:hidden size-8 flex items-center justify-center rounded-lg hover:bg-neutral-200/60 dark:hover:bg-white/5 transition-colors text-neutral-500" onclick="toggleSidebar()">
+        <span class="material-symbols-outlined text-xl">close</span>
+      </button>
+    </div>
+    <div class="px-5 pt-5 pb-2 sidebar-section-title">
+      <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-500">Main Menu</p>
+    </div>
+    <nav class="flex-1 px-3 space-y-1 overflow-y-auto custom-scrollbar">
+      <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all {{ 'nav-active bg-accent/8 dark:bg-accent/10 text-accent dark:text-accent-light font-semibold' if request.endpoint == 'admin.dashboard' else 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/5 hover:text-neutral-900 dark:hover:text-white' }}" href="{{ url_for('admin.dashboard') }}">
+        <span class="material-symbols-outlined text-[20px]">grid_view</span><span class="nav-label">Dashboard</span>
+      </a>
+      <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all {{ 'nav-active bg-accent/8 dark:bg-accent/10 text-accent dark:text-accent-light font-semibold' if request.endpoint == 'admin.document_logs' else 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/5 hover:text-neutral-900 dark:hover:text-white' }}" href="{{ url_for('admin.document_logs') }}">
+        <span class="material-symbols-outlined text-[20px]">description</span><span class="nav-label">Document Logs</span>
+      </a>
+      <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all {{ 'nav-active bg-accent/8 dark:bg-accent/10 text-accent dark:text-accent-light font-semibold' if request.endpoint == 'admin.user_management' else 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/5 hover:text-neutral-900 dark:hover:text-white' }}" href="{{ url_for('admin.user_management') }}">
+        <span class="material-symbols-outlined text-[20px]">group</span><span class="nav-label">User Management</span>
+      </a>
+      <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all {{ 'nav-active bg-accent/8 dark:bg-accent/10 text-accent dark:text-accent-light font-semibold' if request.endpoint == 'admin.invoices_list' else 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/5 hover:text-neutral-900 dark:hover:text-white' }}" href="{{ url_for('admin.invoices_list') }}">
+        <span class="material-symbols-outlined text-[20px]">receipt_long</span><span class="nav-label">Invoices</span>
+      </a>
+      <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all {{ 'nav-active bg-accent/8 dark:bg-accent/10 text-accent dark:text-accent-light font-semibold' if request.endpoint == 'admin.receipts_list' else 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/5 hover:text-neutral-900 dark:hover:text-white' }}" href="{{ url_for('admin.receipts_list') }}">
+        <span class="material-symbols-outlined text-[20px]">verified</span><span class="nav-label">Receipts</span>
+      </a>
+      <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all {{ 'nav-active bg-accent/8 dark:bg-accent/10 text-accent dark:text-accent-light font-semibold' if request.endpoint == 'admin.reports' else 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/5 hover:text-neutral-900 dark:hover:text-white' }}" href="{{ url_for('admin.reports') }}">
+        <span class="material-symbols-outlined text-[20px]">bar_chart</span><span class="nav-label">Reports</span>
+      </a>
+      <div class="pt-5 mt-4 border-t border-neutral-200/80 dark:border-white/5">
+        <p class="sidebar-section-title text-[10px] font-semibold uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-500 px-3 mb-2">System</p>
+        <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all {{ 'nav-active bg-accent/8 dark:bg-accent/10 text-accent dark:text-accent-light font-semibold' if request.endpoint == 'admin.team_list' else 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/5 hover:text-neutral-900 dark:hover:text-white' }}" href="{{ url_for('admin.team_list') }}">
+          <span class="material-symbols-outlined text-[20px]">people</span><span class="nav-label">Team</span>
+        </a>
+        <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all {{ 'nav-active bg-accent/8 dark:bg-accent/10 text-accent dark:text-accent-light font-semibold' if request.endpoint == 'admin.settings' else 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/5 hover:text-neutral-900 dark:hover:text-white' }}" href="{{ url_for('admin.settings') }}">
+          <span class="material-symbols-outlined text-[20px]">settings</span><span class="nav-label">Settings</span>
+        </a>
+      </div>
+    </nav>
+    <div class="p-4">
+      <button onclick="document.getElementById('createModal').classList.remove('hidden')" class="sidebar-create-btn w-full bg-accent hover:bg-accent-dark text-white py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all neon-glow">
+        <span class="material-symbols-outlined text-[18px]">add</span><span class="sidebar-create-text">Create New</span>
+      </button>
+    </div>
+    <div class="p-4 border-t border-neutral-200/80 dark:border-white/5">
+      <div class="sidebar-user flex items-center gap-3">
+        {% if user.image_path %}{% if user.image_path.startswith('http') %}<img src="{{ user.image_path }}" alt="{{ user.full_name }}" class="size-9 rounded-full object-cover ring-2 ring-neutral-200 dark:ring-white/10">{% else %}<img src="{{ url_for('static', filename=user.image_path) }}" alt="{{ user.full_name }}" class="size-9 rounded-full object-cover ring-2 ring-neutral-200 dark:ring-white/10">{% endif %}{% else %}
+        <div class="user-avatar size-9 rounded-full bg-accent/10 dark:bg-accent/20 ring-2 ring-neutral-200 dark:ring-white/10 flex items-center justify-center text-accent font-bold text-xs shrink-0">{{ user.full_name[:2].upper() }}</div>{% endif %}
+        <div class="sidebar-user-info flex-1 min-w-0">
+          <p class="text-sm font-semibold truncate text-neutral-800 dark:text-white">{{ user.full_name }}</p>
+          <p class="text-[11px] text-neutral-400 dark:text-neutral-500 font-medium truncate">{{ 'Admin' if user.role == 'admin' else user.position or 'Staff' }}</p>
+        </div>
+        <a href="{{ url_for('auth.logout') }}" class="size-8 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-white/5 text-neutral-400 hover:text-neutral-700 dark:hover:text-white transition-colors shrink-0" title="Sign Out">
+          <span class="material-symbols-outlined text-[18px]">logout</span>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Create Modal -->
+  <div id="createModal" class="hidden fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-surface-card-dark p-8 rounded-2xl shadow-2xl w-full max-w-md border border-neutral-200 dark:border-white/10">
+      <h2 class="text-xl font-bold mb-6 dark:text-white">Create New</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <a href="{{ url_for('invoices.create') }}" class="flex flex-col items-center gap-3 p-6 rounded-xl border border-neutral-200 dark:border-white/10 hover:border-accent dark:hover:border-accent hover:bg-accent/5 transition-all group">
+          <div class="size-12 rounded-full bg-neutral-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-colors"><span class="material-symbols-outlined text-2xl">description</span></div>
+          <span class="font-semibold text-sm">New Invoice</span>
+        </a>
+        <button onclick="document.getElementById('createModal').classList.add('hidden'); document.getElementById('workerModal').classList.remove('hidden');" class="flex flex-col items-center gap-3 p-6 rounded-xl border border-neutral-200 dark:border-white/10 hover:border-accent dark:hover:border-accent hover:bg-accent/5 transition-all group">
+          <div class="size-12 rounded-full bg-neutral-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-colors"><span class="material-symbols-outlined text-2xl">person_add</span></div>
+          <span class="font-semibold text-sm">New Worker</span>
+        </button>
+      </div>
+      <button onclick="document.getElementById('createModal').classList.add('hidden')" class="w-full mt-6 py-2.5 text-neutral-500 hover:text-neutral-800 dark:hover:text-white font-medium transition-colors">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Worker Modal -->
+  <div id="workerModal" class="hidden fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-surface-card-dark p-8 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-neutral-200 dark:border-white/10">
+      <h2 class="text-xl font-bold mb-4 dark:text-white">Sign New Worker</h2>
+      <form action="{{ url_for('auth.create_worker') }}" method="POST" class="space-y-4" enctype="multipart/form-data">
+        <div><label class="block text-sm font-semibold mb-1.5 text-neutral-700 dark:text-neutral-300">Full Name</label><input name="full_name" type="text" class="w-full px-3 py-2.5 border border-neutral-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm bg-white dark:bg-white/5 dark:text-white" required></div>
+        <div><label class="block text-sm font-semibold mb-1.5 text-neutral-700 dark:text-neutral-300">Position</label><input name="position" type="text" class="w-full px-3 py-2.5 border border-neutral-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm bg-white dark:bg-white/5 dark:text-white" required></div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-semibold mb-1.5 text-neutral-700 dark:text-neutral-300">Location</label><input name="location" type="text" class="w-full px-3 py-2.5 border border-neutral-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm bg-white dark:bg-white/5 dark:text-white" placeholder="City"></div>
+          <div><label class="block text-sm font-semibold mb-1.5 text-neutral-700 dark:text-neutral-300">Nationality</label><input name="nationality" type="text" class="w-full px-3 py-2.5 border border-neutral-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm bg-white dark:bg-white/5 dark:text-white" placeholder="Country"></div>
+        </div>
+        <div><label class="block text-sm font-semibold mb-1.5 text-neutral-700 dark:text-neutral-300">Address</label><textarea name="address" class="w-full px-3 py-2.5 border border-neutral-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm bg-white dark:bg-white/5 dark:text-white" rows="2"></textarea></div>
+        <div><label class="block text-sm font-semibold mb-1.5 text-neutral-700 dark:text-neutral-300">Photo</label><input name="photo" type="file" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-accent/10 file:text-accent file:font-medium dark:text-neutral-400"></div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="document.getElementById('workerModal').classList.add('hidden')" class="px-4 py-2.5 text-neutral-500 hover:text-neutral-800 dark:hover:text-white font-medium text-sm transition-colors">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 bg-accent text-white rounded-lg font-semibold text-sm hover:bg-accent-dark transition-colors neon-glow">Add Worker</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex flex-col overflow-hidden h-screen">
+    <header class="h-16 border-b border-neutral-200/80 dark:border-white/5 bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl px-4 sm:px-8 flex items-center justify-between z-10">
+      <div class="flex items-center gap-2 flex-1 max-w-xl">
+        <button class="lg:hidden size-9 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors text-neutral-500 dark:text-neutral-400" onclick="toggleSidebar()"><span class="material-symbols-outlined text-xl">menu</span></button>
+        <button class="hidden lg:flex size-9 items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors text-neutral-400" onclick="collapseSidebar()" title="Toggle sidebar"><span class="material-symbols-outlined text-xl" id="collapseIcon">menu_open</span></button>
+        <div class="relative w-full hidden sm:block">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-[20px]">search</span>
+          <input class="w-full bg-neutral-100 dark:bg-white/5 border border-transparent focus:border-accent/30 rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-accent/10 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 dark:text-white transition-colors" placeholder="Search..." type="text" />
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button onclick="toggleTheme()" class="size-9 rounded-lg flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors" title="Toggle theme">
+          <span class="material-symbols-outlined text-xl dark:hidden">dark_mode</span>
+          <span class="material-symbols-outlined text-xl hidden dark:block">light_mode</span>
+        </button>
+        <button class="size-9 rounded-lg flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/5 relative transition-colors">
+          <span class="material-symbols-outlined text-xl">notifications</span>
+          <span class="absolute top-1.5 right-1.5 size-2 bg-accent rounded-full ring-2 ring-white dark:ring-surface-dark"></span>
+        </button>
+        <div class="h-7 w-px bg-neutral-200 dark:bg-white/10 mx-1 hidden sm:block"></div>
+        <div class="flex items-center gap-3">
+          <div class="text-right hidden sm:block">
+            <p class="text-sm font-semibold leading-none dark:text-white">{{ user.full_name }}</p>
+            <p class="text-[11px] text-neutral-400 dark:text-neutral-500 font-medium mt-0.5">{{ 'Admin' if user.role == 'admin' else user.position or 'Staff' }}</p>
+          </div>
+          <div class="relative group">
+            {% if user.image_path %}{% if user.image_path.startswith('http') %}<img src="{{ user.image_path }}" alt="{{ user.full_name }}" class="size-9 rounded-full object-cover ring-2 ring-neutral-200 dark:ring-white/10">{% else %}<img src="{{ url_for('static', filename=user.image_path) }}" alt="{{ user.full_name }}" class="size-9 rounded-full object-cover ring-2 ring-neutral-200 dark:ring-white/10">{% endif %}{% else %}
+            <div class="size-9 rounded-full bg-accent text-white ring-2 ring-neutral-200 dark:ring-white/10 flex items-center justify-center font-bold text-xs">{{ user.full_name[:2].upper() }}</div>{% endif %}
+            <div class="hidden group-hover:block absolute right-0 top-full mt-2 w-48 bg-white dark:bg-surface-card-dark rounded-xl shadow-xl border border-neutral-200 dark:border-white/10 z-50">
+              <div class="p-3 border-b border-neutral-100 dark:border-white/5"><p class="font-semibold text-sm dark:text-white">{{ user.full_name }}</p><p class="text-[11px] text-neutral-400 font-mono">{{ user.worker_id }}</p></div>
+              <a href="{{ url_for('admin.settings') }}" class="flex items-center gap-2 px-3 py-2 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors"><span class="material-symbols-outlined text-[18px]">settings</span> Settings</a>
+              <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-2 px-3 py-2 text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-white/5 rounded-b-xl transition-colors"><span class="material-symbols-outlined text-[18px]">logout</span> Sign Out</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <div id="dashboardContent" class="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar bg-neutral-50 dark:bg-surface-dark">
+      {% with messages = get_flashed_messages() %}{% if messages %}{% for message in messages %}
+      <div class="mb-4 p-4 bg-accent/10 dark:bg-accent/5 border border-accent/20 text-accent-dark dark:text-accent-light rounded-xl flex items-center gap-2 text-sm font-medium">
+        <span class="material-symbols-outlined text-lg">check_circle</span>{{ message }}
+      </div>{% endfor %}{% endif %}{% endwith %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+  <script>
+    function getTheme() { return localStorage.getItem('opalpixel-theme') || 'light'; }
+    function applyTheme(t) {
+      const h = document.documentElement;
+      h.classList.add('transitioning');
+      h.classList.toggle('dark', t === 'dark');
+      h.classList.toggle('light', t !== 'dark');
+      localStorage.setItem('opalpixel-theme', t);
+      setTimeout(() => h.classList.remove('transitioning'), 350);
+    }
+    function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
+    (function(){ if(localStorage.getItem('opalpixel-theme')==='dark'){document.documentElement.classList.add('dark');document.documentElement.classList.remove('light');} })();
+
+    function toggleSidebar() {
+      const s = document.getElementById('sidebar'), o = document.getElementById('sidebarOverlay');
+      s.classList.toggle('open'); o.classList.toggle('hidden');
+      document.body.classList.toggle('overflow-hidden', s.classList.contains('open'));
+    }
+    function collapseSidebar() {
+      const s = document.getElementById('sidebar'), i = document.getElementById('collapseIcon');
+      s.classList.toggle('collapsed');
+      i.textContent = s.classList.contains('collapsed') ? 'menu' : 'menu_open';
+      localStorage.setItem('opalpixel-sidebar', s.classList.contains('collapsed') ? 'collapsed' : 'expanded');
+    }
+    (function(){ if(localStorage.getItem('opalpixel-sidebar')==='collapsed'){const s=document.getElementById('sidebar'),i=document.getElementById('collapseIcon');if(s)s.classList.add('collapsed');if(i)i.textContent='menu';} })();
+
+    document.querySelectorAll('#createModal, #workerModal').forEach(m => {
+      m.addEventListener('click', e => { if(e.target === m) m.classList.add('hidden'); });
+    });
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

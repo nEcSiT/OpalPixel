@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Automatic Receipt Generation Workflow</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='uploads/Logo opalpixel_1.png') }}"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700;800;900&text=%E2%82%B5&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { "display": ["Inter", "Noto Sans", "sans-serif"] },
+                    colors: {
+                        accent: { DEFAULT: '#6366f1', light: '#818cf8', dark: '#4f46e5', 50: '#eef2ff' },
+                        surface: { light: '#ffffff', dark: '#0f1117', 'card-dark': '#181a20' },
+                        sidebar: { light: '#fafafa', dark: '#13141a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #404040; }
+        .neon-glow { box-shadow: 0 0 20px rgba(99,102,241,0.15); }
+        .dark .neon-glow { box-shadow: 0 0 20px rgba(99,102,241,0.3); }
+        .transitioning * { transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
+    </style>
+<script>
+    (function(){var t=localStorage.getItem('opalpixel-theme');if(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark');})();
+</script>
+</head>
+<body class="bg-neutral-50 dark:bg-surface-dark text-neutral-900 dark:text-neutral-100 min-h-screen flex font-display overflow-hidden">
+
+<!-- Mobile Sidebar Overlay -->
+<div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+<!-- Persistent Left Sidebar -->
+<aside id="sidebar" class="w-64 flex flex-col bg-sidebar-dark text-white h-screen shrink-0 fixed lg:static z-50 transition-transform duration-300 -translate-x-full lg:translate-x-0">
+    <div class="p-6 flex items-center gap-3">
+        <div class="size-8 bg-accent rounded-lg flex items-center justify-center text-white">
+            <span class="material-symbols-outlined font-bold">flowsheet</span>
+        </div>
+        <h1 class="text-xl font-bold tracking-tight text-white">DocuFlow</h1>
+    </div>
+    <nav class="flex-1 px-4 space-y-1">
+        <div class="flex items-center gap-3 px-3 py-2.5 text-neutral-400 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+            <span class="material-symbols-outlined text-[22px]">dashboard</span>
+            <span class="text-sm font-semibold">Dashboard</span>
+        </div>
+        <div class="flex items-center gap-3 px-3 py-2.5 bg-accent text-white rounded-lg cursor-pointer transition-colors neon-glow">
+            <span class="material-symbols-outlined text-[22px]">description</span>
+            <span class="text-sm font-semibold">Invoices</span>
+        </div>
+        <div class="flex items-center gap-3 px-3 py-2.5 text-neutral-400 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+            <span class="material-symbols-outlined text-[22px]">group</span>
+            <span class="text-sm font-semibold">Clients</span>
+        </div>
+        <div class="flex items-center gap-3 px-3 py-2.5 text-neutral-400 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+            <span class="material-symbols-outlined text-[22px]">monitoring</span>
+            <span class="text-sm font-semibold">Reports</span>
+        </div>
+        <div class="mt-8 px-3 py-2">
+            <span class="text-[10px] uppercase tracking-widest font-bold text-neutral-500">Administration</span>
+        </div>
+        <div class="flex items-center gap-3 px-3 py-2.5 text-neutral-400 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
+            <span class="material-symbols-outlined text-[22px]">settings</span>
+            <span class="text-sm font-semibold">Settings</span>
+        </div>
+    </nav>
+    <div class="p-4 border-t border-white/10">
+        <div class="flex items-center gap-3 p-2 rounded-xl bg-white/10">
+            <div class="size-9 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center text-xs font-bold">MA</div>
+            <div class="flex flex-col">
+                <span class="text-xs font-bold text-white">Master Admin</span>
+                <span class="text-[10px] text-neutral-400">Workspace Owner</span>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+    <!-- Header Bar -->
+    <header class="h-16 border-b border-neutral-200 dark:border-white/10 flex items-center justify-between px-4 lg:px-8 bg-white/80 dark:bg-surface-card-dark/80 backdrop-blur-md z-10 shrink-0">
+        <div class="flex items-center gap-4 flex-1 max-w-xl">
+            <!-- Mobile menu toggle -->
+            <button class="lg:hidden flex items-center justify-center p-2 text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors" onclick="toggleSidebar()">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            <div class="relative w-full">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-xl">search</span>
+                <input class="w-full bg-neutral-100 dark:bg-white/5 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-accent/20 placeholder:text-neutral-500 dark:text-neutral-200" placeholder="Search by Invoice ID, Client, or Amount..." type="text"/>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <button class="flex items-center justify-center p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/10 rounded-lg transition-colors">
+                <span class="material-symbols-outlined">notifications</span>
+            </button>
+            <button onclick="toggleTheme()" class="flex items-center justify-center p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/10 rounded-lg transition-colors" title="Toggle theme">
+                <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+            </button>
+            <button class="bg-accent hover:bg-accent-dark text-white text-sm font-bold px-4 py-2 rounded-lg flex items-center gap-2 neon-glow transition-all">
+                <span class="material-symbols-outlined text-sm">add</span>
+                Create New
+            </button>
+        </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
+        <!-- Page Heading -->
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+            <div>
+                <h2 class="text-3xl font-black tracking-tight text-neutral-900 dark:text-white">Master Document Logs</h2>
+                <p class="text-neutral-500 dark:text-neutral-400 mt-1">Manage and track automated invoice workflows in real-time.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button class="px-4 py-2 text-sm font-bold bg-neutral-100 dark:bg-white/10 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-white/20 rounded-lg flex items-center gap-2 transition-colors">
+                    <span class="material-symbols-outlined text-sm">download</span>
+                    Export CSV
+                </button>
+                <button class="px-4 py-2 text-sm font-bold bg-neutral-100 dark:bg-white/10 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-white/20 rounded-lg flex items-center gap-2 transition-colors">
+                    <span class="material-symbols-outlined text-sm">tune</span>
+                    Filter
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabs/Chips -->
+        <div class="flex items-center gap-2 mb-6">
+            <button class="px-4 py-1.5 rounded-full bg-accent text-white text-xs font-bold neon-glow">All Documents</button>
+            <button class="px-4 py-1.5 rounded-full bg-neutral-100 dark:bg-white/10 text-neutral-600 dark:text-neutral-400 text-xs font-semibold hover:bg-neutral-200 dark:hover:bg-white/20 transition-colors">Pending</button>
+            <button class="px-4 py-1.5 rounded-full bg-neutral-100 dark:bg-white/10 text-neutral-600 dark:text-neutral-400 text-xs font-semibold hover:bg-neutral-200 dark:hover:bg-white/20 transition-colors">Paid</button>
+            <button class="px-4 py-1.5 rounded-full bg-neutral-100 dark:bg-white/10 text-neutral-600 dark:text-neutral-400 text-xs font-semibold hover:bg-neutral-200 dark:hover:bg-white/20 transition-colors">Overdue</button>
+        </div>
+
+        <!-- Document Table Card -->
+        <div class="bg-white dark:bg-surface-card-dark rounded-xl border border-neutral-200 dark:border-white/10 overflow-hidden shadow-xl shadow-black/5">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-neutral-50 dark:bg-white/5 border-b border-neutral-200 dark:border-white/10">
+                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Invoice ID</th>
+                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Client</th>
+                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Amount</th>
+                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Status</th>
+                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Last Activity</th>
+                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-neutral-200 dark:divide-white/5">
+                    <!-- Row 1: Active Change State -->
+                    <tr class="hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors group">
+                        <td class="px-6 py-5">
+                            <span class="text-sm font-bold text-neutral-900 dark:text-white">#INV-5502</span>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="flex items-center gap-3">
+                                <div class="size-8 rounded-lg bg-neutral-200 dark:bg-white/10 flex items-center justify-center text-neutral-600 dark:text-neutral-300 font-bold text-xs">AC</div>
+                                <span class="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Acme Corp</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <span class="text-sm font-medium font-mono text-neutral-600 dark:text-neutral-400">$1,200.00</span>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="relative inline-block">
+                                <button class="flex items-center gap-2 px-3 py-1 rounded-lg bg-accent text-white text-xs font-bold">
+                                    <div class="size-1.5 rounded-full bg-white animate-pulse"></div>
+                                    Paid
+                                    <span class="material-symbols-outlined text-xs">expand_more</span>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <span class="text-xs text-neutral-500 dark:text-neutral-400">2 mins ago</span>
+                        </td>
+                        <td class="px-6 py-5">
+                            <button class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-accent text-white text-xs font-bold hover:bg-accent-dark neon-glow transition-all">
+                                <span class="material-symbols-outlined text-sm">visibility</span>
+                                View Receipt
+                            </button>
+                        </td>
+                    </tr>
+                    <!-- Row 2 -->
+                    <tr class="hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors group">
+                        <td class="px-6 py-5 text-sm font-bold text-neutral-900 dark:text-white">#INV-5501</td>
+                        <td class="px-6 py-5">
+                            <div class="flex items-center gap-3">
+                                <div class="size-8 rounded-lg bg-neutral-200 dark:bg-white/10 flex items-center justify-center text-neutral-600 dark:text-neutral-300 font-bold text-xs">GT</div>
+                                <span class="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Global Tech</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5 text-sm font-medium font-mono text-neutral-600 dark:text-neutral-400">$850.00</td>
+                        <td class="px-6 py-5">
+                            <button class="flex items-center gap-2 px-3 py-1 rounded-lg bg-neutral-200 text-neutral-700 text-xs font-bold">
+                                <div class="size-1.5 rounded-full bg-neutral-500"></div>
+                                Pending
+                                <span class="material-symbols-outlined text-xs">expand_more</span>
+                            </button>
+                        </td>
+                        <td class="px-6 py-5 text-xs text-neutral-500 dark:text-neutral-400">1 hour ago</td>
+                        <td class="px-6 py-5">
+                            <button class="px-4 py-1.5 text-xs font-bold text-neutral-500 dark:text-neutral-400 hover:text-accent transition-colors">Edit Log</button>
+                        </td>
+                    </tr>
+                    <!-- Row 3 -->
+                    <tr class="hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors group">
+                        <td class="px-6 py-5 text-sm font-bold text-neutral-900 dark:text-white">#INV-5500</td>
+                        <td class="px-6 py-5">
+                            <div class="flex items-center gap-3">
+                                <div class="size-8 rounded-lg bg-neutral-200 dark:bg-white/10 flex items-center justify-center text-neutral-600 dark:text-neutral-300 font-bold text-xs">SI</div>
+                                <span class="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Stark Ind.</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5 text-sm font-medium font-mono text-neutral-600 dark:text-neutral-400">$3,400.00</td>
+                        <td class="px-6 py-5">
+                            <button class="flex items-center gap-2 px-3 py-1 rounded-lg bg-accent text-white text-xs font-bold">
+                                <div class="size-1.5 rounded-full bg-white"></div>
+                                Paid
+                            </button>
+                        </td>
+                        <td class="px-6 py-5 text-xs text-neutral-500 dark:text-neutral-400">Yesterday</td>
+                        <td class="px-6 py-5">
+                            <button class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-neutral-100 dark:bg-white/10 text-neutral-600 dark:text-neutral-300 text-xs font-bold hover:bg-neutral-200 dark:hover:bg-white/20 transition-all">
+                                View Receipt
+                            </button>
+                        </td>
+                    </tr>
+                    <!-- Row 4 -->
+                    <tr class="hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors group">
+                        <td class="px-6 py-5 text-sm font-bold text-neutral-900 dark:text-white">#INV-5499</td>
+                        <td class="px-6 py-5">
+                            <div class="flex items-center gap-3">
+                                <div class="size-8 rounded-lg bg-neutral-200 dark:bg-white/10 flex items-center justify-center text-neutral-600 dark:text-neutral-300 font-bold text-xs">WL</div>
+                                <span class="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Wayne Logistics</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5 text-sm font-medium font-mono text-neutral-600 dark:text-neutral-400">$2,100.00</td>
+                        <td class="px-6 py-5">
+                            <button class="flex items-center gap-2 px-3 py-1 rounded-lg bg-neutral-300 text-neutral-800 text-xs font-bold">
+                                <div class="size-1.5 rounded-full bg-neutral-600"></div>
+                                Overdue
+                            </button>
+                        </td>
+                        <td class="px-6 py-5 text-xs text-neutral-500 dark:text-neutral-400">3 days ago</td>
+                        <td class="px-6 py-5">
+                            <button class="px-4 py-1.5 text-xs font-bold text-neutral-500 dark:text-neutral-400 hover:text-accent transition-colors">Send Reminder</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="p-6 rounded-xl border border-neutral-200 dark:border-white/10 bg-white dark:bg-surface-card-dark">
+                <p class="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest mb-2">Automated Today</p>
+                <div class="flex items-end justify-between">
+                    <span class="text-3xl font-black">128</span>
+                    <span class="text-xs font-bold text-neutral-600 dark:text-neutral-300 flex items-center gap-1">+12% <span class="material-symbols-outlined text-xs">trending_up</span></span>
+                </div>
+            </div>
+            <div class="p-6 rounded-xl border border-neutral-200 dark:border-white/10 bg-white dark:bg-surface-card-dark">
+                <p class="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest mb-2">Success Rate</p>
+                <div class="flex items-end justify-between">
+                    <span class="text-3xl font-black">99.2%</span>
+                    <div class="h-2 w-24 bg-neutral-100 dark:bg-white/10 rounded-full overflow-hidden">
+                        <div class="h-full bg-accent" style="width: 99%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 rounded-xl border border-neutral-200 dark:border-white/10 bg-white dark:bg-surface-card-dark">
+                <p class="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest mb-2">Average Cycle</p>
+                <div class="flex items-end justify-between">
+                    <span class="text-3xl font-black">4.2h</span>
+                    <span class="text-xs font-semibold text-neutral-400 dark:text-neutral-500 italic">Fastest this week</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Toast Notification (Bottom Right) -->
+    <div class="fixed bottom-8 right-8 z-50">
+        <div class="bg-white dark:bg-surface-card-dark border-l-4 border-accent rounded-lg shadow-2xl p-4 min-w-[340px] flex gap-4 items-start ring-1 ring-neutral-200 dark:ring-white/10">
+            <div class="size-10 bg-accent/10 rounded-full flex items-center justify-center text-accent shrink-0">
+                <span class="material-symbols-outlined font-bold">check_circle</span>
+            </div>
+            <div class="flex flex-col flex-1">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-sm font-bold text-neutral-900 dark:text-white">Status Updated</h4>
+                    <span class="material-symbols-outlined text-neutral-400 text-sm cursor-pointer hover:text-neutral-600">close</span>
+                </div>
+                <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed">
+                    Receipt <span class="font-bold text-neutral-700 dark:text-neutral-200">#REC-1029</span> has been automatically generated and sent to the client.
+                </p>
+                <div class="flex items-center gap-3 mt-3">
+                    <button class="text-xs font-bold text-accent hover:underline">View Receipt</button>
+                    <button class="text-xs font-bold text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200">Dismiss</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.toggle('-translate-x-full');
+        overlay.classList.toggle('hidden');
+    }
+</script>
+<script>
+function getTheme(){return localStorage.getItem('opalpixel-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');}
+function applyTheme(t){document.documentElement.classList.toggle('dark',t==='dark');var i=document.getElementById('themeIcon');if(i)i.textContent=t==='dark'?'light_mode':'dark_mode';}
+function toggleTheme(){var t=getTheme()==='dark'?'light':'dark';localStorage.setItem('opalpixel-theme',t);document.documentElement.classList.add('transitioning');applyTheme(t);setTimeout(()=>document.documentElement.classList.remove('transitioning'),300);}
+applyTheme(getTheme());
+</script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+{% extends "base_admin.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <div class="mb-8">
+    <h2 class="text-2xl font-extrabold tracking-tight dark:text-white">Settings</h2>
+    <p class="text-neutral-500 dark:text-neutral-400 font-medium">Manage your account and system preferences</p>
+  </div>
+
+  <!-- Profile Section -->
+  <div class="bg-white dark:bg-[#181a20] rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm mb-6">
+    <div class="p-6 border-b border-neutral-200 dark:border-white/10">
+      <h3 class="text-lg font-bold dark:text-white">Profile Information</h3>
+    </div>
+    <div class="p-6">
+      <div class="flex items-start gap-6">
+        <div class="shrink-0">
+          {% if user.image_path %}
+          {% if user.image_path.startswith('http') %}
+          <img src="{{ user.image_path }}" alt="{{ user.full_name }}" class="size-24 rounded-xl object-cover border-2 border-neutral-200 dark:border-white/10">
+          {% else %}
+          <img src="{{ url_for('static', filename=user.image_path) }}" alt="{{ user.full_name }}" class="size-24 rounded-xl object-cover border-2 border-neutral-200 dark:border-white/10">
+          {% endif %}
+          {% else %}
+          <div class="size-24 rounded-xl bg-neutral-100 dark:bg-white/10 flex items-center justify-center text-black dark:text-white font-bold text-2xl border-2 border-neutral-200 dark:border-white/10">
+            {{ user.full_name[:2].upper() }}
+          </div>
+          {% endif %}
+        </div>
+        <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-bold text-neutral-500 dark:text-neutral-400 mb-1">Full Name</label>
+            <p class="text-lg font-bold dark:text-white">{{ user.full_name }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-neutral-500 dark:text-neutral-400 mb-1">Worker ID</label>
+            <p class="font-mono bg-neutral-100 dark:bg-white/10 dark:text-white px-3 py-1 rounded inline-block select-all">{{ user.worker_id }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-neutral-500 dark:text-neutral-400 mb-1">Position</label>
+            <p>{{ user.position or 'Not specified' }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-neutral-500 dark:text-neutral-400 mb-1">Role</label>
+            <span class="inline-flex items-center gap-1 px-3 py-1 {{ 'bg-[#6366f1] text-white' if user.role == 'admin' else 'bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-300' }} text-sm font-bold rounded-full">
+              {{ 'Super Admin' if user.role == 'admin' else 'Worker' }}
+            </span>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-neutral-500 dark:text-neutral-400 mb-1">Location</label>
+            <p>{{ user.location or 'Not specified' }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-neutral-500 dark:text-neutral-400 mb-1">Nationality</label>
+            <p>{{ user.nationality or 'Not specified' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="bg-white dark:bg-[#181a20] rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm mb-6">
+    <div class="p-6 border-b border-neutral-200 dark:border-white/10">
+      <h3 class="text-lg font-bold dark:text-white">Quick Actions</h3>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <a href="{{ url_for('exports.invoices_csv') }}" class="flex items-center gap-4 p-4 rounded-xl border border-neutral-200 dark:border-white/10 hover:border-black dark:hover:border-[#6366f1] hover:bg-neutral-50 dark:hover:bg-white/5 transition-all">
+          <div class="size-12 rounded-full bg-neutral-100 dark:bg-white/10 flex items-center justify-center">
+            <span class="material-symbols-outlined text-neutral-600 dark:text-neutral-400">download</span>
+          </div>
+          <div>
+            <p class="font-bold dark:text-white">Export Invoices</p>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400">Download all invoices as CSV</p>
+          </div>
+        </a>
+        <a href="{{ url_for('exports.receipts_csv') }}" class="flex items-center gap-4 p-4 rounded-xl border border-neutral-200 dark:border-white/10 hover:border-black dark:hover:border-[#6366f1] hover:bg-neutral-50 dark:hover:bg-white/5 transition-all">
+          <div class="size-12 rounded-full bg-neutral-100 dark:bg-white/10 flex items-center justify-center">
+            <span class="material-symbols-outlined text-neutral-600 dark:text-neutral-400">receipt_long</span>
+          </div>
+          <div>
+            <p class="font-bold dark:text-white">Export Receipts</p>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400">Download all receipts as CSV</p>
+          </div>
+        </a>
+        <a href="{{ url_for('exports.clients_csv') }}" class="flex items-center gap-4 p-4 rounded-xl border border-neutral-200 dark:border-white/10 hover:border-black dark:hover:border-[#6366f1] hover:bg-neutral-50 dark:hover:bg-white/5 transition-all">
+          <div class="size-12 rounded-full bg-neutral-100 dark:bg-white/10 flex items-center justify-center">
+            <span class="material-symbols-outlined text-neutral-600 dark:text-neutral-400">group</span>
+          </div>
+          <div>
+            <p class="font-bold dark:text-white">Export Clients</p>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400">Download client list as CSV</p>
+          </div>
+        </a>
+        <a href="{{ url_for('exports.all_csv') }}" class="flex items-center gap-4 p-4 rounded-xl border border-neutral-200 dark:border-white/10 hover:border-black dark:hover:border-[#6366f1] hover:bg-neutral-50 dark:hover:bg-white/5 transition-all">
+          <div class="size-12 rounded-full bg-neutral-100 dark:bg-white/10 flex items-center justify-center">
+            <span class="material-symbols-outlined text-neutral-600 dark:text-neutral-400">table_chart</span>
+          </div>
+          <div>
+            <p class="font-bold dark:text-white">Full Report</p>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400">Download complete data export</p>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Info -->
+  <div class="bg-white dark:bg-[#181a20] rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm">
+    <div class="p-6 border-b border-neutral-200 dark:border-white/10">
+      <h3 class="text-lg font-bold dark:text-white">System Information</h3>
+    </div>
+    <div class="p-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="text-center p-4 bg-neutral-50 dark:bg-white/5 rounded-xl">
+          <p class="text-3xl font-extrabold text-black dark:text-white">{{ system_info.total_invoices }}</p>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Total Invoices</p>
+        </div>
+        <div class="text-center p-4 bg-neutral-50 dark:bg-white/5 rounded-xl">
+          <p class="text-3xl font-extrabold text-black dark:text-white">{{ system_info.total_receipts }}</p>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Total Receipts</p>
+        </div>
+        <div class="text-center p-4 bg-neutral-50 dark:bg-white/5 rounded-xl">
+          <p class="text-3xl font-extrabold text-black dark:text-white">{{ system_info.total_users }}</p>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Total Users</p>
+        </div>
+      </div>
+      <div class="mt-6 pt-6 border-t border-neutral-200 dark:border-white/10">
+        <p class="text-sm text-neutral-500 dark:text-neutral-400">
+          <strong>OpalPixel Finance Portal</strong> v1.0.0<br>
+          © 2026 OpalPixel. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logout -->
+  <div class="mt-6 text-center">
+    <a href="{{ url_for('auth.logout') }}" class="inline-flex items-center gap-2 px-6 py-3 bg-neutral-100 dark:bg-white/5 text-black dark:text-white rounded-xl font-bold hover:bg-neutral-200 dark:hover:bg-white/10 transition-colors">
+      <span class="material-symbols-outlined">logout</span>
+      Sign Out
+    </a>
+  </div>
+</div>
+{% endblock %}

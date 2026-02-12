@@ -15,6 +15,9 @@ instance/
 *.db
 *.sqlite3
 
+# Logs
+logs/
+
 # Environment variables
 .env
 .env.local

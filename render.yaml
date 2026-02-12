@@ -2,13 +2,14 @@ services:
   - type: web
     name: opalpixel
     runtime: python
-    rootDir: OpalPixel_App
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn "app:create_app()"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.11
+      - key: FLASK_ENV
+        value: production
       - key: SECRET_KEY
         generateValue: true
       - key: MONGODB_URI
-        sync: false  # You'll set this manually in Render dashboard with your MongoDB Atlas connection string
+        sync: false  # Set in Render dashboard to your Atlas connection string

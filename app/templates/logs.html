@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Master Document Logs - Admin Dashboard</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='uploads/Logo opalpixel_1.png') }}"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700;800;900&text=%E2%82%B5&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { "display": ["Inter", "Noto Sans", "sans-serif"] },
+                    colors: {
+                        accent: { DEFAULT: '#6366f1', light: '#818cf8', dark: '#4f46e5', 50: '#eef2ff' },
+                        surface: { light: '#ffffff', dark: '#0f1117', 'card-dark': '#181a20' },
+                        sidebar: { light: '#fafafa', dark: '#13141a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #404040; }
+        .neon-glow { box-shadow: 0 0 20px rgba(99,102,241,0.15); }
+        .dark .neon-glow { box-shadow: 0 0 20px rgba(99,102,241,0.3); }
+        .transitioning * { transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
+    </style>
+    <script>
+        (function(){var t=localStorage.getItem('opalpixel-theme');if(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark');})();
+    </script>
+</head>
+<body class="bg-neutral-50 dark:bg-surface-dark font-display text-neutral-900 dark:text-neutral-100 antialiased">
+<div class="flex h-screen overflow-hidden">
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- SideNavBar -->
+    <aside id="sidebar" class="w-64 flex-shrink-0 flex flex-col bg-sidebar-dark text-white fixed lg:static z-50 h-screen transition-transform duration-300 -translate-x-full lg:translate-x-0">
+        <div class="p-6 flex flex-col h-full">
+            <div class="flex items-center gap-3 mb-10">
+                <div class="bg-accent flex items-center justify-center rounded-lg size-10 text-white">
+                    <span class="material-symbols-outlined text-2xl">account_balance</span>
+                </div>
+                <div class="flex flex-col">
+                    <h1 class="text-white text-lg font-bold leading-none">FinancePortal</h1>
+                    <p class="text-neutral-400 text-xs font-medium mt-1">Admin Oversight</p>
+                </div>
+            </div>
+            <nav class="flex flex-col gap-1.5 flex-1">
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-400 hover:bg-white/10 transition-colors" href="#">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <span class="text-sm font-semibold">Dashboard</span>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-accent text-white neon-glow" href="#">
+                    <span class="material-symbols-outlined">description</span>
+                    <span class="text-sm font-bold">Document Logs</span>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-400 hover:bg-white/10 transition-colors" href="#">
+                    <span class="material-symbols-outlined">group</span>
+                    <span class="text-sm font-semibold">User Management</span>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-400 hover:bg-white/10 transition-colors" href="#">
+                    <span class="material-symbols-outlined">analytics</span>
+                    <span class="text-sm font-semibold">Reports</span>
+                </a>
+                <div class="mt-auto pt-4 border-t border-white/10">
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-400 hover:bg-white/10 transition-colors" href="#">
+                        <span class="material-symbols-outlined">settings</span>
+                        <span class="text-sm font-semibold">Settings</span>
+                    </a>
+                </div>
+            </nav>
+            <button class="mt-6 flex items-center justify-center gap-2 w-full py-3 bg-accent text-white rounded-lg text-sm font-bold hover:bg-accent-dark neon-glow transition-all">
+                <span class="material-symbols-outlined text-sm">add</span>
+                <span>Create New</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col min-w-0 bg-neutral-50 dark:bg-surface-dark overflow-hidden">
+        <!-- TopNavBar -->
+        <header class="h-16 flex items-center justify-between px-4 lg:px-8 border-b border-neutral-200 dark:border-white/10 bg-white/80 dark:bg-surface-card-dark/80 backdrop-blur-md sticky top-0 z-10">
+            <div class="flex items-center gap-4 flex-1 max-w-xl">
+                <!-- Mobile menu toggle -->
+                <button class="lg:hidden flex items-center justify-center p-2 text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors" onclick="toggleSidebar()">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <div class="relative w-full">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-xl">search</span>
+                    <input class="w-full pl-10 pr-4 py-2 bg-neutral-100 dark:bg-white/5 border-none rounded-lg text-sm focus:ring-2 focus:ring-accent/20 dark:text-neutral-200 transition-all" placeholder="Global search for logs..." type="text"/>
+                </div>
+            </div>
+            <div class="flex items-center gap-5 ml-4">
+                <div class="flex items-center gap-2">
+                    <button class="p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/10 rounded-lg relative">
+                        <span class="material-symbols-outlined">notifications</span>
+                        <span class="absolute top-2 right-2 size-2 bg-accent rounded-full border-2 border-white dark:border-surface-card-dark"></span>
+                    </button>
+                    <button class="p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/10 rounded-lg">
+                        <span class="material-symbols-outlined">chat_bubble</span>
+                    </button>
+                </div>
+                <button onclick="toggleTheme()" class="p-2 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-white/10 rounded-lg transition-colors" title="Toggle theme">
+                    <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+                </button>
+                <div class="h-8 w-[1px] bg-neutral-200 dark:bg-white/10 mx-1"></div>
+                <div class="flex items-center gap-3 pl-2">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-xs font-bold leading-none">Alex Sterling</p>
+                        <p class="text-[10px] text-neutral-500 mt-1 uppercase tracking-wider">Super Admin</p>
+                    </div>
+                    <div class="size-9 rounded-full bg-neutral-200 dark:bg-white/10 text-neutral-600 dark:text-neutral-300 flex items-center justify-center text-xs font-bold border-2 border-neutral-300 dark:border-white/10">AS</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Body -->
+        <div class="flex-1 overflow-y-auto p-4 lg:p-8">
+            <!-- PageHeading -->
+            <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div class="max-w-2xl">
+                    <h2 class="text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight">Master Document Logs</h2>
+                    <p class="text-neutral-500 dark:text-neutral-400 mt-2 text-base leading-relaxed">Centralized ledger of all financial activities across the platform. Real-time auditing for workers, clients, and transaction statuses.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button class="flex items-center gap-2 px-4 py-2.5 bg-neutral-100 dark:bg-white/10 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-white/20 rounded-lg text-sm font-bold transition-colors">
+                        <span class="material-symbols-outlined text-lg">ios_share</span>
+                        <span>Export CSV</span>
+                    </button>
+                    <button class="flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-lg text-sm font-bold hover:bg-accent-dark neon-glow transition-all">
+                        <span class="material-symbols-outlined text-lg">print</span>
+                        <span>Print Monthly</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ToolBar & Chips Container -->
+            <div class="bg-white dark:bg-surface-card-dark border border-neutral-200 dark:border-white/10 rounded-xl mb-6">
+                <div class="p-4 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 dark:border-white/10">
+                    <div class="flex flex-wrap gap-2">
+                        <button class="flex items-center gap-2 px-4 py-1.5 bg-accent text-white rounded-full text-xs font-bold neon-glow">
+                            All Records
+                        </button>
+                        <button class="flex items-center gap-2 px-4 py-1.5 bg-neutral-100 dark:bg-white/10 text-neutral-600 dark:text-neutral-400 rounded-full text-xs font-semibold hover:bg-neutral-200 dark:hover:bg-white/20 transition-colors">
+                            Invoices (4,231)
+                        </button>
+                        <button class="flex items-center gap-2 px-4 py-1.5 bg-neutral-100 dark:bg-white/10 text-neutral-600 dark:text-neutral-400 rounded-full text-xs font-semibold hover:bg-neutral-200 dark:hover:bg-white/20 transition-colors">
+                            Receipts (1,029)
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 text-xs font-medium">
+                        <span class="material-symbols-outlined text-sm">schedule</span>
+                        <span>Last updated: 2 mins ago</span>
+                    </div>
+                </div>
+                <!-- Filters -->
+                <div class="p-4 flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-2 bg-neutral-50 dark:bg-white/5 p-1.5 rounded-lg border border-neutral-200 dark:border-white/10">
+                        <button class="p-2 text-neutral-600 dark:text-neutral-300 hover:bg-white dark:hover:bg-white/10 rounded-md transition-all">
+                            <span class="material-symbols-outlined">filter_list</span>
+                        </button>
+                        <button class="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-300">
+                            <span class="material-symbols-outlined text-sm">calendar_month</span>
+                            <span>Date Range</span>
+                        </button>
+                        <div class="h-4 w-px bg-neutral-200 dark:bg-white/10"></div>
+                        <button class="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-300">
+                            <span class="material-symbols-outlined text-sm">person_search</span>
+                            <span>Worker</span>
+                        </button>
+                        <div class="h-4 w-px bg-neutral-200 dark:bg-white/10"></div>
+                        <button class="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-neutral-600 dark:text-neutral-300">
+                            <span class="material-symbols-outlined text-sm">payments</span>
+                            <span>Status</span>
+                        </button>
+                    </div>
+                    <div class="ml-auto">
+                        <button class="px-6 py-2 bg-accent text-white rounded-lg text-sm font-bold hover:bg-accent-dark neon-glow transition-all">
+                            Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Section -->
+            <div class="bg-white dark:bg-surface-card-dark border border-neutral-200 dark:border-white/10 rounded-xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse text-left">
+                        <thead>
+                            <tr class="bg-neutral-50 dark:bg-white/5 border-b border-neutral-200 dark:border-white/10">
+                                <th class="px-6 py-4 text-[11px] font-extrabold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest">Document ID</th>
+                                <th class="px-6 py-4 text-[11px] font-extrabold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest">Issued By</th>
+                                <th class="px-6 py-4 text-[11px] font-extrabold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest">Client Name</th>
+                                <th class="px-6 py-4 text-[11px] font-extrabold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest">Amount</th>
+                                <th class="px-6 py-4 text-[11px] font-extrabold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest">Date &amp; Time</th>
+                                <th class="px-6 py-4 text-[11px] font-extrabold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest">Status</th>
+                                <th class="px-6 py-4 text-[11px] font-extrabold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-200 dark:divide-white/5">
+                            <!-- Row 1 -->
+                            <tr class="group hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <span class="material-symbols-outlined text-neutral-400 text-lg">receipt_long</span>
+                                        <span class="text-sm font-bold text-neutral-900 dark:text-white">INV-2023-0941</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="size-7 rounded-full bg-neutral-200 dark:bg-white/10 flex items-center justify-center text-[10px] font-bold text-neutral-600 dark:text-neutral-300">MS</div>
+                                        <span class="text-sm font-medium">Marcus Stone</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm font-semibold text-neutral-700 dark:text-neutral-300">Vanguard Dynamics Ltd.</td>
+                                <td class="px-6 py-4 text-sm font-bold text-neutral-900 dark:text-white">$4,250.00</td>
+                                <td class="px-6 py-4">
+                                    <div class="text-[12px] leading-tight">
+                                        <p class="font-bold text-neutral-700 dark:text-neutral-300">Oct 24, 2023</p>
+                                        <p class="text-neutral-400 mt-0.5">14:20 PM</p>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent text-white">
+                                        <span class="size-1.5 bg-white rounded-full"></span> Paid
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <button class="p-1.5 text-neutral-400 hover:text-accent transition-colors">
+                                        <span class="material-symbols-outlined text-lg">more_vert</span>
+                                    </button>
+                                </td>
+                            </tr>
+                            <!-- Row 2 -->
+                            <tr class="group hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <span class="material-symbols-outlined text-neutral-400 text-lg">drafts</span>
+                                        <span class="text-sm font-bold text-neutral-900 dark:text-white">RCP-2023-1102</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="size-7 rounded-full bg-neutral-200 dark:bg-white/10 flex items-center justify-center text-[10px] font-bold text-neutral-600 dark:text-neutral-300">JL</div>
+                                        <span class="text-sm font-medium">Janine Lowe</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm font-semibold text-neutral-700 dark:text-neutral-300">Acme Global Corp</td>
+                                <td class="px-6 py-4 text-sm font-bold text-neutral-900 dark:text-white">$890.50</td>
+                                <td class="px-6 py-4">
+                                    <div class="text-[12px] leading-tight">
+                                        <p class="font-bold text-neutral-700 dark:text-neutral-300">Oct 24, 2023</p>
+                                        <p class="text-neutral-400 mt-0.5">11:05 AM</p>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300">
+                                        <span class="size-1.5 bg-neutral-500 rounded-full"></span> Pending
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <button class="p-1.5 text-neutral-400 hover:text-accent transition-colors">
+                                        <span class="material-symbols-outlined text-lg">more_vert</span>
+                                    </button>
+                                </td>
+                            </tr>
+                            <!-- Row 3 -->
+                            <tr class="group hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <span class="material-symbols-outlined text-neutral-400 text-lg">receipt_long</span>
+                                        <span class="text-sm font-bold text-neutral-900 dark:text-white">INV-2023-0940</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="size-7 rounded-full bg-neutral-200 dark:bg-white/10 flex items-center justify-center text-[10px] font-bold text-neutral-600 dark:text-neutral-300">MS</div>
+                                        <span class="text-sm font-medium">Marcus Stone</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm font-semibold text-neutral-700 dark:text-neutral-300">Urban Solutions</td>
+                                <td class="px-6 py-4 text-sm font-bold text-neutral-900 dark:text-white">$12,400.00</td>
+                                <td class="px-6 py-4">
+                                    <div class="text-[12px] leading-tight">
+                                        <p class="font-bold text-neutral-700 dark:text-neutral-300">Oct 23, 2023</p>
+                                        <p class="text-neutral-400 mt-0.5">09:15 AM</p>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent text-white">
+                                        <span class="size-1.5 bg-white rounded-full"></span> Paid
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <button class="p-1.5 text-neutral-400 hover:text-accent transition-colors">
+                                        <span class="material-symbols-outlined text-lg">more_vert</span>
+                                    </button>
+                                </td>
+                            </tr>
+                            <!-- Row 4 -->
+                            <tr class="group hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <span class="material-symbols-outlined text-neutral-400 text-lg">receipt_long</span>
+                                        <span class="text-sm font-bold text-neutral-900 dark:text-white">INV-2023-0939</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="size-7 rounded-full bg-neutral-200 dark:bg-white/10 flex items-center justify-center text-[10px] font-bold text-neutral-600 dark:text-neutral-300">RB</div>
+                                        <span class="text-sm font-medium">Robert Blair</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm font-semibold text-neutral-700 dark:text-neutral-300">Pioneer Industries</td>
+                                <td class="px-6 py-4 text-sm font-bold text-neutral-900 dark:text-white">$3,120.00</td>
+                                <td class="px-6 py-4">
+                                    <div class="text-[12px] leading-tight">
+                                        <p class="font-bold text-neutral-700 dark:text-neutral-300">Oct 22, 2023</p>
+                                        <p class="text-neutral-400 mt-0.5">16:45 PM</p>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300">
+                                        <span class="size-1.5 bg-neutral-500 rounded-full"></span> Pending
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <button class="p-1.5 text-neutral-400 hover:text-accent transition-colors">
+                                        <span class="material-symbols-outlined text-lg">more_vert</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination Footer -->
+                <div class="p-4 bg-neutral-50 dark:bg-white/5 border-t border-neutral-200 dark:border-white/10 flex items-center justify-between">
+                    <p class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">Showing 1 to 4 of 5,260 entries</p>
+                    <div class="flex items-center gap-1">
+                        <button class="size-8 flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-white/10 text-neutral-400 border border-transparent">
+                            <span class="material-symbols-outlined text-lg">chevron_left</span>
+                        </button>
+                        <button class="size-8 flex items-center justify-center rounded-lg bg-accent text-white text-xs font-bold">1</button>
+                        <button class="size-8 flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-white/10 text-neutral-600 dark:text-neutral-400 text-xs font-bold border border-transparent">2</button>
+                        <button class="size-8 flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-white/10 text-neutral-600 dark:text-neutral-400 text-xs font-bold border border-transparent">3</button>
+                        <span class="px-2 text-neutral-400">...</span>
+                        <button class="size-8 flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-white/10 text-neutral-600 dark:text-neutral-400 text-xs font-bold border border-transparent">526</button>
+                        <button class="size-8 flex items-center justify-center rounded-lg hover:bg-white dark:hover:bg-white/10 text-neutral-400 border border-transparent">
+                            <span class="material-symbols-outlined text-lg">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.toggle('-translate-x-full');
+        overlay.classList.toggle('hidden');
+    }
+</script>
+<script>
+function getTheme(){return localStorage.getItem('opalpixel-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');}
+function applyTheme(t){document.documentElement.classList.toggle('dark',t==='dark');var i=document.getElementById('themeIcon');if(i)i.textContent=t==='dark'?'light_mode':'dark_mode';}
+function toggleTheme(){var t=getTheme()==='dark'?'light':'dark';localStorage.setItem('opalpixel-theme',t);document.documentElement.classList.add('transitioning');applyTheme(t);setTimeout(()=>document.documentElement.classList.remove('transitioning'),300);}
+applyTheme(getTheme());
+</script>
+</body>
+</html>

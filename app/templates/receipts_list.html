@@ -1,0 +1,40 @@
+{% extends "base_admin.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold dark:text-white">Generated Receipts</h2>
+    </div>
+
+    <div class="bg-white dark:bg-surface-card-dark rounded-xl border border-neutral-200 dark:border-white/10 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-neutral-50 dark:bg-white/5 text-neutral-500 dark:text-neutral-400 text-[11px] font-bold uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">Receipt #</th>
+                        <th class="px-6 py-4">Related Invoice</th>
+                        <th class="px-6 py-4">Amount Paid</th>
+                        <th class="px-6 py-4">Payment Date</th>
+                        <th class="px-6 py-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-neutral-200 dark:divide-white/5">
+                    {% for receipt in receipts %}
+                    <tr class="hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors">
+                        <td class="px-6 py-4 font-bold text-sm text-black dark:text-white">{{ receipt.receipt_number }}</td>
+                        <td class="px-6 py-4 text-sm">{{ receipt.invoice.invoice_number if receipt.invoice else ('#INV-' ~ receipt.invoice_id) }}</td>
+                        <td class="px-6 py-4 font-bold text-sm dark:text-white">GH₵{{ "%.2f"|format(receipt.amount_paid) }}</td>
+                        <td class="px-6 py-4 text-sm text-neutral-500 dark:text-neutral-400">{{ receipt.payment_date.strftime('%b %d, %Y') }}</td>
+                        <td class="px-6 py-4">
+                             <a href="{{ url_for('invoices.view_receipt', invoice_id=receipt.invoice_id) }}" class="text-accent dark:text-accent-light font-bold text-xs hover:underline flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">visibility</span> View
+                             </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
