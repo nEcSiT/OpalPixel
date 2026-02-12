@@ -82,6 +82,13 @@ class Invoice(me.Document):
 
     items = me.EmbeddedDocumentListField(InvoiceItem)
 
+    @property
+    def creator(self):
+        """Resolve user_id to the User who created this invoice."""
+        if self.user_id:
+            return User.objects(id=self.user_id).first()
+        return None
+
     def __repr__(self) -> str:
         return f"<Invoice {self.invoice_number}>"
 
