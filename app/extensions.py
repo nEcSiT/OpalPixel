@@ -14,7 +14,10 @@ def init_db(app):
     mongodb_uri = app.config.get(
         "MONGODB_URI", "mongodb://localhost:27017/opalpixel"
     )
-    mongoengine.connect(host=mongodb_uri)
+    try:
+        mongoengine.connect(host=mongodb_uri, serverSelectionTimeoutMS=3000, connectTimeoutMS=3000)
+    except Exception as e:
+        app.logger.warning(f"MongoDB connection failed: {e}. Running in database-less mode.")
 
 
 login_manager = LoginManager()

@@ -8,7 +8,7 @@ different configurations (development, testing, production).
 import os
 
 import cloudinary
-from flask import Flask, redirect, url_for
+from flask import Flask, render_template
 from flask_login import current_user
 
 from config import config_by_name
@@ -54,18 +54,16 @@ def create_app(config_name: str | None = None) -> Flask:
     app.register_blueprint(exports_bp)
     app.register_blueprint(api_bp)
 
-    # -- Root redirect -----------------------------------------------------
+    # -- Root landing page ------------------------------------------------
     @app.route("/")
     def index():
-        if current_user.is_authenticated:
-            if current_user.role == "admin":
-                return redirect(url_for("admin.dashboard"))
-            return redirect(url_for("worker.dashboard"))
-        return redirect(url_for("auth.login"))
+        return render_template("landing.html")
 
     # -- Database bootstrap ------------------------------------------------
-    with app.app_context():
-        _seed_admin()
+    # Only seed admin in the main process, not in the reloader subprocess
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        with app.app_context():
+            _seed_admin()
 
     return app
 
@@ -74,13 +72,17 @@ def _seed_admin() -> None:
     """Create the default admin account if none exists."""
     from app.models import User
 
-    if not User.objects(role="admin").first():
-        admin = User(
-            full_name="OpalPixel",
-            worker_id="OPL-0508748992",
-            position="System Admin",
-            role="admin",
-        )
-        admin.set_password("admin123")
-        admin.save()
-        print("Default admin created: OPL-0508748992")
+    try:
+        if not User.objects(role="admin").first():
+            admin = User(
+                full_name="OpalPixel",
+                worker_id="OPL-0508748992",
+                position="System Admin",
+                role="admin",
+            )
+            admin.set_password("admin123")
+            admin.save()
+            print("Default admin created: OPL-0508748992")
+    except Exception as e:
+        print(f"Could not seed admin: {e}")
+
